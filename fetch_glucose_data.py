@@ -27,6 +27,7 @@ proxies = {
     'https': f'https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'
 }
 
+# Function to make requests with proxy configuration
 def make_request(url, method='GET', data=None, headers={}):
     try:
         if method == 'GET':
@@ -105,17 +106,23 @@ def send_to_nightscout(glucose_data):
 if __name__ == '__main__':
     try:
         session_token = get_librelinkup_session()
-        print("Successfully obtained session token")
-        connections = get_glucose_data(session_token)
-        print("Successfully obtained glucose data")
-        for connection in connections:
-            print(f"Connection ID: {connection['id']}")
-            if 'glucoseMeasurement' in connection:
-                glucose_measurement = connection['glucoseMeasurement']
-                print(f"Date: {glucose_measurement['Timestamp']}, Glucose Value: {glucose_measurement['Value']}")
-                send_to_nightscout([connection])
+        if session_token:
+            print("Successfully obtained session token")
+            connections = get_glucose_data(session_token)
+            if connections:
+                print("Successfully obtained glucose data")
+                for connection in connections:
+                    print(f"Connection ID: {connection['id']}")
+                    if 'glucoseMeasurement' in connection:
+                        glucose_measurement = connection['glucoseMeasurement']
+                        print(f"Date: {glucose_measurement['Timestamp']}, Glucose Value: {glucose_measurement['Value']}")
+                        send_to_nightscout([connection])
+                    else:
+                        print("No glucose measurement data available.")
             else:
-                print("No glucose measurement data available.")
+                print("No connections found.")
+        else:
+            print("Failed to obtain session token.")
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
     except ValueError as err:
