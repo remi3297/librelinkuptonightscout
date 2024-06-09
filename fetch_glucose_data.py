@@ -2,7 +2,10 @@ import requests
 import json
 import datetime
 import os
-import base64
+import sys
+import urllib.request
+from urllib.error import HTTPError, URLError
+from requests.auth import HTTPProxyAuth
 
 # Vos informations d'identification
 LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL')
@@ -22,63 +25,57 @@ print(f"LIBRELINKUP_PASSWORD: {'*' * len(LIBRELINKUP_PASSWORD) if LIBRELINKUP_PA
 print(f"NIGHTSCOUT_URL: {NIGHTSCOUT_URL}")
 print(f"NIGHTSCOUT_API_SECRET: {'*' * len(NIGHTSCOUT_API_SECRET) if NIGHTSCOUT_API_SECRET else None}")
 
-proxies = {
-    'http': PROXY_URL,
-    'https': PROXY_URL,
-}
+# Configuration du proxy pour urllib
+proxy_handler = urllib.request.ProxyHandler({
+    'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}',
+    'https': f'https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'
+})
+opener = urllib.request.build_opener(proxy_handler)
+urllib.request.install_opener(opener)
 
-# Encode les informations d'identification pour l'authentification de base
-proxy_auth = f"{PROXY_USERNAME}:{PROXY_PASSWORD}"
-encoded_auth = base64.b64encode(proxy_auth.encode('utf-8')).decode('utf-8')
-proxy_headers = {
-    'Proxy-Authorization': f'Basic {encoded_auth}'
+# Configuration du proxy pour requests
+proxies = {
+    'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}',
+    'https': f'https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'
 }
+proxy_auth = HTTPProxyAuth(PROXY_USERNAME, PROXY_PASSWORD)
+
+def make_request(url, data=None, headers={}):
+    req = urllib.request.Request(url, data=data, headers=headers)
+    try:
+        with urllib.request.urlopen(req) as response:
+            return response.read().decode()
+    except HTTPError as e:
+        print(f'HTTPError: {e.code} - {e.reason}')
+    except URLError as e:
+        print(f'URLError: {e.reason}')
 
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
-    payload = {
+    payload = json.dumps({
         'email': LIBRELINKUP_EMAIL,
         'password': LIBRELINKUP_PASSWORD
-    }
+    }).encode('utf-8')
     headers = {
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
-        'product': 'llu.ios',
-        **proxy_headers  # Ajoute les en-têtes d'authentification du proxy
+        'product': 'llu.ios'
     }
-
-    try:
-        response = requests.post(login_url, data=json.dumps(payload), headers=headers, proxies=proxies)
-        print(f"Initial Response Status Code: {response.status_code}")
-        print(f"Initial Response Text: {response.text}")
-        response.raise_for_status()
-        data = response.json()
-
+    response_text = make_request(login_url, data=payload, headers=headers)
+    if response_text:
+        data = json.loads(response_text)
         if 'redirect' in data['data'] and data['data']['redirect']:
             region = data['data']['region']
             regional_login_url = f'https://{region}.api.libreview.io/llu/auth/login'
-            print(f"Redirecting to regional URL: {regional_login_url}")
-            response = requests.post(regional_login_url, data=json.dumps(payload), headers=headers, proxies=proxies)
-            print(f"Redirected Response Status Code: {response.status_code}")
-            print(f"Redirected Response Text: {response.text}")
-            response.raise_for_status()
-            data = response.json()
-
-        print(f"Response JSON: {json.dumps(data, indent=2)}")
-
+            response_text = make_request(regional_login_url, data=payload, headers=headers)
+            if response_text:
+                data = json.loads(response_text)
         auth_ticket = data['data'].get('authTicket')
         if not auth_ticket:
             raise ValueError("authTicket not found in response")
-        
         return auth_ticket
-
-    except requests.exceptions.HTTPError as err:
-        print(f"HTTP error occurred: {err}")
-        raise
-    except Exception as err:
-        print(f"An error occurred: {err}")
-        raise
+    return None
 
 def get_glucose_data(session_token):
     data_url = 'https://api.libreview.io/llu/connections'
@@ -87,10 +84,9 @@ def get_glucose_data(session_token):
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
-        'product': 'llu.ios',
-        **proxy_headers  # Ajoute les en-têtes d'authentification du proxy
+        'product': 'llu.ios'
     }
-    response = requests.get(data_url, headers=headers, proxies=proxies)
+    response = requests.get(data_url, headers=headers, proxies=proxies, auth=proxy_auth)
     print(f"Glucose Data Response Status Code: {response.status_code}")
     print(f"Glucose Data Response Text: {response.text}")
     response.raise_for_status()
@@ -108,10 +104,9 @@ def send_to_nightscout(glucose_data):
             }
             headers = {
                 'API-SECRET': NIGHTSCOUT_API_SECRET,
-                'Content-Type': 'application/json',
-                **proxy_headers  # Ajoute les en-têtes d'authentification du proxy
+                'Content-Type': 'application/json'
             }
-            response = requests.post(f'{NIGHTSCOUT_URL}/api/v1/entries', data=json.dumps(payload), headers=headers, proxies=proxies)
+            response = requests.post(f'{NIGHTSCOUT_URL}/api/v1/entries', data=json.dumps(payload), headers=headers, proxies=proxies, auth=proxy_auth)
             response.raise_for_status()
             print(f"Successfully sent data to Nightscout: {payload}")
 
@@ -131,5 +126,7 @@ if __name__ == '__main__':
                 print("No glucose measurement data available.")
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
+    except ValueError as err:
+        print(f"Value error occurred: {err}")
     except Exception as err:
         print(f"An error occurred: {err}")
