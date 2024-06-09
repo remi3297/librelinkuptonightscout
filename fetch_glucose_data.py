@@ -38,6 +38,9 @@ def get_librelinkup_session():
         if 'redirect' in data['data'] and data['data']['redirect']:
             print(f"Redirection suggested to region: {data['data']['region']}, but ignoring redirection")
 
+        # Ajout d'un journal pour afficher le contenu de la réponse JSON
+        print(f"Response JSON: {json.dumps(data, indent=2)}")
+
         auth_ticket = data['data'].get('authTicket')
         if not auth_ticket:
             raise ValueError("authTicket not found in response")
