@@ -26,7 +26,7 @@ proxies = {
     'https': PROXY_URL,
 }
 
-auth = (PROXY_USERNAME, PROXY_PASSWORD)
+proxy_auth = requests.auth.HTTPProxyAuth(PROXY_USERNAME, PROXY_PASSWORD)
 
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
@@ -42,7 +42,7 @@ def get_librelinkup_session():
     }
 
     try:
-        response = requests.post(login_url, data=json.dumps(payload), headers=headers, proxies=proxies, auth=auth)
+        response = requests.post(login_url, data=json.dumps(payload), headers=headers, proxies=proxies, auth=proxy_auth)
         print(f"Initial Response Status Code: {response.status_code}")
         print(f"Initial Response Text: {response.text}")
         response.raise_for_status()
@@ -52,7 +52,7 @@ def get_librelinkup_session():
             region = data['data']['region']
             regional_login_url = f'https://{region}.api.libreview.io/llu/auth/login'
             print(f"Redirecting to regional URL: {regional_login_url}")
-            response = requests.post(regional_login_url, data=json.dumps(payload), headers=headers, proxies=proxies, auth=auth)
+            response = requests.post(regional_login_url, data=json.dumps(payload), headers=headers, proxies=proxies, auth=proxy_auth)
             print(f"Redirected Response Status Code: {response.status_code}")
             print(f"Redirected Response Text: {response.text}")
             response.raise_for_status()
@@ -82,7 +82,7 @@ def get_glucose_data(session_token):
         'version': '4.7.0',
         'product': 'llu.ios'
     }
-    response = requests.get(data_url, headers=headers, proxies=proxies, auth=auth)
+    response = requests.get(data_url, headers=headers, proxies=proxies, auth=proxy_auth)
     print(f"Glucose Data Response Status Code: {response.status_code}")
     print(f"Glucose Data Response Text: {response.text}")
     response.raise_for_status()
@@ -102,7 +102,7 @@ def send_to_nightscout(glucose_data):
                 'API-SECRET': NIGHTSCOUT_API_SECRET,
                 'Content-Type': 'application/json'
             }
-            response = requests.post(f'{NIGHTSCOUT_URL}/api/v1/entries', data=json.dumps(payload), headers=headers, proxies=proxies, auth=auth)
+            response = requests.post(f'{NIGHTSCOUT_URL}/api/v1/entries', data=json.dumps(payload), headers=headers, proxies=proxies, auth=proxy_auth)
             response.raise_for_status()
             print(f"Successfully sent data to Nightscout: {payload}")
 
