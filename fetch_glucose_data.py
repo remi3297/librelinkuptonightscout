@@ -29,7 +29,7 @@ def get_librelinkup_session():
     data = response.json()
     if 'redirect' in data['data'] and data['data']['redirect']:
         region = data['data']['region']
-        base_url = f'https://{region}.api.libreview.io'
+        base_url = f'https://api.libreview.io/{region}'
         login_url = f'{base_url}/llu/auth/login'
         response = requests.post(login_url, data=json.dumps(payload), headers=headers)
         print(f"Redirected Response Status Code: {response.status_code}")
