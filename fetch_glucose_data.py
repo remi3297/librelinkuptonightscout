@@ -2,6 +2,11 @@ import requests
 import json
 import os
 import datetime
+import urllib.request
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement depuis un fichier .env si présent
+load_dotenv()
 
 # Définir les variables d'environnement
 LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL')
@@ -11,13 +16,6 @@ NIGHTSCOUT_URL = os.getenv('NIGHTSCOUT_URL')
 PROXY_URL = os.getenv('PROXY_URL')
 PROXY_USERNAME = os.getenv('PROXY_USERNAME')
 PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
-
-proxies = {
-    "http": PROXY_URL,
-    "https": PROXY_URL,
-}
-
-auth = (PROXY_USERNAME, PROXY_PASSWORD)
 
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
@@ -31,15 +29,20 @@ def get_librelinkup_session():
         'version': '4.7.0',
         'product': 'llu.ios'
     }
-
-    session = requests.Session()
-    session.proxies.update(proxies)
-    session.auth = auth
-    response = session.post(login_url, json=payload, headers=headers)
-    print(f"Response Status Code: {response.status_code}")
-    print(f"Response Text: {response.text}")
-    response.raise_for_status()
-    return response.json()['data']['authTicket']
+    
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler(
+            {'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}',
+             'https': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'}))
+    urllib.request.install_opener(opener)
+    
+    req = urllib.request.Request(login_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
+    with urllib.request.urlopen(req) as response:
+        response_data = response.read().decode('utf-8')
+        print(f"Response Status Code: {response.getcode()}")
+        print(f"Response Text: {response_data}")
+        response_json = json.loads(response_data)
+        return response_json['data']['authTicket']
 
 def get_glucose_data(session_token):
     data_url = 'https://api.libreview.io/llu/connections'
@@ -50,15 +53,20 @@ def get_glucose_data(session_token):
         'version': '4.7.0',
         'product': 'llu.ios'
     }
-
-    session = requests.Session()
-    session.proxies.update(proxies)
-    session.auth = auth
-    response = session.get(data_url, headers=headers)
-    print(f"Response Status Code: {response.status_code}")
-    print(f"Response Text: {response.text}")
-    response.raise_for_status()
-    return response.json()['data']
+    
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler(
+            {'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}',
+             'https': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'}))
+    urllib.request.install_opener(opener)
+    
+    req = urllib.request.Request(data_url, headers=headers)
+    with urllib.request.urlopen(req) as response:
+        response_data = response.read().decode('utf-8')
+        print(f"Response Status Code: {response.getcode()}")
+        print(f"Response Text: {response_data}")
+        response_json = json.loads(response_data)
+        return response_json['data']
 
 def send_to_nightscout(glucose_data):
     entries_url = f"{NIGHTSCOUT_URL}/api/v1/entries"
@@ -66,7 +74,6 @@ def send_to_nightscout(glucose_data):
         'API-SECRET': NIGHTSCOUT_API_SECRET,
         'Content-Type': 'application/json'
     }
-
     for connection in glucose_data:
         if 'glucoseMeasurement' in connection:
             glucose_measurement = connection['glucoseMeasurement']
@@ -76,8 +83,7 @@ def send_to_nightscout(glucose_data):
                 "direction": "Flat",
                 "device": "LibreLinkUp"
             }
-
-            response = requests.post(entries_url, headers=headers, json=entry)
+            response = requests.post(entries_url, headers=headers, data=json.dumps(entry))
             print(f"Nightscout Response Status Code: {response.status_code}")
             print(f"Nightscout Response Text: {response.text}")
             response.raise_for_status()
