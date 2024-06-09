@@ -9,8 +9,7 @@ NIGHTSCOUT_URL = os.getenv('NIGHTSCOUT_URL')
 NIGHTSCOUT_API_SECRET = os.getenv('NIGHTSCOUT_API_SECRET')
 
 def get_librelinkup_session():
-    base_url = 'https://api.libreview.io'
-    login_url = f'{base_url}/llu/auth/login'
+    login_url = 'https://api.libreview.io/llu/auth/login'
     payload = {
         'email': LIBRELINKUP_EMAIL,
         'password': LIBRELINKUP_PASSWORD
@@ -29,18 +28,17 @@ def get_librelinkup_session():
     data = response.json()
     if 'redirect' in data['data'] and data['data']['redirect']:
         region = data['data']['region']
-        base_url = f'https://api.libreview.io/{region}'
-        login_url = f'{base_url}/llu/auth/login'
+        login_url = f'https://{region}.api.libreview.io/llu/auth/login'
         response = requests.post(login_url, data=json.dumps(payload), headers=headers)
         print(f"Redirected Response Status Code: {response.status_code}")
         print(f"Redirected Response Text: {response.text}")
         response.raise_for_status()
         data = response.json()
 
-    return data['data']['authTicket'], base_url
+    return data['data']['authTicket']
 
-def get_glucose_data(session_token, base_url):
-    data_url = f'{base_url}/llu/connections'
+def get_glucose_data(session_token):
+    data_url = 'https://api.libreview.io/llu/connections'
     headers = {
         'authorization': f'Bearer {session_token}',
         'Content-Type': 'application/json',
@@ -74,8 +72,8 @@ def send_to_nightscout(glucose_data):
 
 if __name__ == '__main__':
     try:
-        session_token, base_url = get_librelinkup_session()
-        connections = get_glucose_data(session_token, base_url)
+        session_token = get_librelinkup_session()
+        connections = get_glucose_data(session_token)
         for connection in connections:
             print(f"Connection ID: {connection['id']}")
             if 'glucoseMeasurement' in connection:
