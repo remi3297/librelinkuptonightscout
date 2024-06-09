@@ -36,7 +36,14 @@ def get_librelinkup_session():
         data = response.json()
 
         if 'redirect' in data['data'] and data['data']['redirect']:
-            print(f"Redirection suggested to region: {data['data']['region']}, but ignoring redirection")
+            region = data['data']['region']
+            login_url = f'https://{region}.api.libreview.io/llu/auth/login'
+            print(f"Redirecting to regional URL: {login_url}")
+            response = requests.post(login_url, data=json.dumps(payload), headers=headers)
+            print(f"Redirected Response Status Code: {response.status_code}")
+            print(f"Redirected Response Text: {response.text}")
+            response.raise_for_status()
+            data = response.json()
 
         # Ajout d'un journal pour afficher le contenu de la réponse JSON
         print(f"Response JSON: {json.dumps(data, indent=2)}")
