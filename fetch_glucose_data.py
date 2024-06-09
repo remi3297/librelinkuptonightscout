@@ -33,15 +33,21 @@ def get_librelinkup_session():
     print(f"Initial Response Text: {response.text}")
     response.raise_for_status()
     data = response.json()
-    
-    # Ignorer la redirection et continuer avec l'URL de base
+
     if 'redirect' in data['data'] and data['data']['redirect']:
-        print(f"Redirection suggested to region: {data['data']['region']}, but continuing with base URL")
-    
-    if 'authTicket' not in data['data']:
+        region = data['data']['region']
+        login_url = f'https://{region}.api.libreview.io/llu/auth/login'
+        response = requests.post(login_url, data=json.dumps(payload), headers=headers)
+        print(f"Redirected Response Status Code: {response.status_code}")
+        print(f"Redirected Response Text: {response.text}")
+        response.raise_for_status()
+        data = response.json()
+
+    auth_ticket = data['data'].get('authTicket')
+    if not auth_ticket:
         raise ValueError("authTicket not found in response")
     
-    return data['data']['authTicket']
+    return auth_ticket
 
 def get_glucose_data(session_token):
     data_url = 'https://api.libreview.io/llu/connections'
