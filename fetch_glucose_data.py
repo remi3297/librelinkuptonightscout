@@ -73,9 +73,10 @@ def get_glucose_data(session_token):
 def send_to_nightscout(glucose_data):
     entries_url = f"{NIGHTSCOUT_URL}/api/v1/entries"
     headers = {
-        'API-SECRET': NIGHTSCOUT_API_SECRET,
+        'api-secret': NIGHTSCOUT_API_SECRET,
         'Content-Type': 'application/json'
     }
+    print(f"Nightscout Headers: {headers}")
     for connection in glucose_data:
         if 'glucoseMeasurement' in connection:
             glucose_measurement = connection['glucoseMeasurement']
