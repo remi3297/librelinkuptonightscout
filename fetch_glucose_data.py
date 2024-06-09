@@ -9,11 +9,6 @@ LIBRELINKUP_PASSWORD = os.getenv('LIBRELINKUP_PASSWORD')
 NIGHTSCOUT_URL = os.getenv('NIGHTSCOUT_URL')
 NIGHTSCOUT_API_SECRET = os.getenv('NIGHTSCOUT_API_SECRET')
 
-# Informations du proxy
-PROXY_URL = os.getenv('PROXY_URL')
-PROXY_USERNAME = os.getenv('PROXY_USERNAME')
-PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
-
 print("Starting fetch_glucose_data.py script")
 
 print(f"LIBRELINKUP_EMAIL: {LIBRELINKUP_EMAIL}")
@@ -21,18 +16,12 @@ print(f"LIBRELINKUP_PASSWORD: {'*' * len(LIBRELINKUP_PASSWORD) if LIBRELINKUP_PA
 print(f"NIGHTSCOUT_URL: {NIGHTSCOUT_URL}")
 print(f"NIGHTSCOUT_API_SECRET: {'*' * len(NIGHTSCOUT_API_SECRET) if NIGHTSCOUT_API_SECRET else None}")
 
-# Configuration du proxy pour requests
-proxies = {
-    'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}',
-    'https': f'https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'
-}
-
 def make_request(url, method='GET', data=None, headers={}):
     try:
         if method == 'GET':
-            response = requests.get(url, headers=headers, proxies=proxies, auth=(PROXY_USERNAME, PROXY_PASSWORD))
+            response = requests.get(url, headers=headers)
         elif method == 'POST':
-            response = requests.post(url, data=data, headers=headers, proxies=proxies, auth=(PROXY_USERNAME, PROXY_PASSWORD))
+            response = requests.post(url, data=data, headers=headers)
         response.raise_for_status()
         return response.text
     except requests.exceptions.HTTPError as e:
@@ -107,15 +96,18 @@ if __name__ == '__main__':
         session_token = get_librelinkup_session()
         print("Successfully obtained session token")
         connections = get_glucose_data(session_token)
-        print("Successfully obtained glucose data")
-        for connection in connections:
-            print(f"Connection ID: {connection['id']}")
-            if 'glucoseMeasurement' in connection:
-                glucose_measurement = connection['glucoseMeasurement']
-                print(f"Date: {glucose_measurement['Timestamp']}, Glucose Value: {glucose_measurement['Value']}")
-                send_to_nightscout([connection])
-            else:
-                print("No glucose measurement data available.")
+        if connections:
+            print("Successfully obtained glucose data")
+            for connection in connections:
+                print(f"Connection ID: {connection['id']}")
+                if 'glucoseMeasurement' in connection:
+                    glucose_measurement = connection['glucoseMeasurement']
+                    print(f"Date: {glucose_measurement['Timestamp']}, Glucose Value: {glucose_measurement['Value']}")
+                    send_to_nightscout([connection])
+                else:
+                    print("No glucose measurement data available.")
+        else:
+            print("No connections found.")
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
     except ValueError as err:
