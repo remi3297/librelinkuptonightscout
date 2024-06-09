@@ -88,19 +88,17 @@ def send_to_nightscout(glucose_data):
                 "direction": "Flat",
                 "device": "LibreLinkUp"
             }
-            req = urllib.request.Request(entries_url, data=json.dumps(entry).encode('utf-8'), headers=headers)
-            with urllib.request.urlopen(req) as response:
-                response_data = response.read().decode('utf-8')
-                print(f"Nightscout Response Status Code: {response.getcode()}")
-                print(f"Nightscout Response Text: {response_data}")
-                response.raise_for_status()
+            response = requests.post(entries_url, headers=headers, data=json.dumps(entry))
+            print(f"Nightscout Response Status Code: {response.status_code}")
+            print(f"Nightscout Response Text: {response.text}")
+            response.raise_for_status()
 
 if __name__ == '__main__':
     try:
         session_token = get_librelinkup_session()
         glucose_data = get_glucose_data(session_token['token'])
         send_to_nightscout(glucose_data)
-    except urllib.error.HTTPError as err:
+    except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
     except Exception as err:
         print(f"An error occurred: {err}")
