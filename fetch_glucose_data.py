@@ -13,9 +13,11 @@ PROXY_USERNAME = os.getenv('PROXY_USERNAME')
 PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
 
 proxies = {
-    "http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}",
-    "https": f"https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}",
+    "http": PROXY_URL,
+    "https": PROXY_URL,
 }
+
+auth = (PROXY_USERNAME, PROXY_PASSWORD)
 
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
@@ -32,6 +34,7 @@ def get_librelinkup_session():
 
     session = requests.Session()
     session.proxies.update(proxies)
+    session.auth = auth
     response = session.post(login_url, json=payload, headers=headers)
     print(f"Response Status Code: {response.status_code}")
     print(f"Response Text: {response.text}")
@@ -50,6 +53,7 @@ def get_glucose_data(session_token):
 
     session = requests.Session()
     session.proxies.update(proxies)
+    session.auth = auth
     response = session.get(data_url, headers=headers)
     print(f"Response Status Code: {response.status_code}")
     print(f"Response Text: {response.text}")
@@ -87,4 +91,3 @@ if __name__ == '__main__':
         print(f"HTTP error occurred: {err}")
     except Exception as err:
         print(f"An error occurred: {err}")
-
