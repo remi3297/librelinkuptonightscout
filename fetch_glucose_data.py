@@ -3,10 +3,19 @@ import json
 import datetime
 import os
 
-LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL', 'remi.lecussan@yahoo.fr')
-LIBRELINKUP_PASSWORD = os.getenv('LIBRELINKUP_PASSWORD', 'Remi32971997!')
+# Ajout de journaux de diagnostic
+print("Starting fetch_glucose_data.py script")
+
+LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL')
+LIBRELINKUP_PASSWORD = os.getenv('LIBRELINKUP_PASSWORD')
 NIGHTSCOUT_URL = os.getenv('NIGHTSCOUT_URL')
 NIGHTSCOUT_API_SECRET = os.getenv('NIGHTSCOUT_API_SECRET')
+
+# Vérification des variables d'environnement
+print(f"LIBRELINKUP_EMAIL: {LIBRELINKUP_EMAIL}")
+print(f"LIBRELINKUP_PASSWORD: {'*' * len(LIBRELINKUP_PASSWORD) if LIBRELINKUP_PASSWORD else None}")
+print(f"NIGHTSCOUT_URL: {NIGHTSCOUT_URL}")
+print(f"NIGHTSCOUT_API_SECRET: {'*' * len(NIGHTSCOUT_API_SECRET) if NIGHTSCOUT_API_SECRET else None}")
 
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
@@ -78,7 +87,9 @@ def send_to_nightscout(glucose_data):
 if __name__ == '__main__':
     try:
         session_token = get_librelinkup_session()
+        print("Successfully obtained session token")
         connections = get_glucose_data(session_token)
+        print("Successfully obtained glucose data")
         for connection in connections:
             print(f"Connection ID: {connection['id']}")
             if 'glucoseMeasurement' in connection:
