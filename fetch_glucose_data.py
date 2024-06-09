@@ -116,4 +116,11 @@ if __name__ == '__main__':
             print(f"Connection ID: {connection['id']}")
             if 'glucoseMeasurement' in connection:
                 glucose_measurement = connection['glucoseMeasurement']
-                print(f"Date: {glucose_measurement['Timestamp']}, Glucose Value: {glucose_measurement['
+                print(f"Date: {glucose_measurement['Timestamp']}, Glucose Value: {glucose_measurement['Value']}")
+                send_to_nightscout([connection])
+            else:
+                print("No glucose measurement data available.")
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP error occurred: {err}")
+    except Exception as err:
+        print(f"An error occurred: {err}")
