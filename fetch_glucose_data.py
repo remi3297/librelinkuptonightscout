@@ -3,15 +3,13 @@ import json
 import datetime
 import os
 
-# Ajout de journaux de diagnostic
-print("Starting fetch_glucose_data.py script")
-
-LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL')
-LIBRELINKUP_PASSWORD = os.getenv('LIBRELINKUP_PASSWORD')
+LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL', 'remi.lecussan@yahoo.fr')
+LIBRELINKUP_PASSWORD = os.getenv('LIBRELINKUP_PASSWORD', 'Remi32971997!')
 NIGHTSCOUT_URL = os.getenv('NIGHTSCOUT_URL')
 NIGHTSCOUT_API_SECRET = os.getenv('NIGHTSCOUT_API_SECRET')
 
-# Vérification des variables d'environnement
+print("Starting fetch_glucose_data.py script")
+
 print(f"LIBRELINKUP_EMAIL: {LIBRELINKUP_EMAIL}")
 print(f"LIBRELINKUP_PASSWORD: {'*' * len(LIBRELINKUP_PASSWORD) if LIBRELINKUP_PASSWORD else None}")
 print(f"NIGHTSCOUT_URL: {NIGHTSCOUT_URL}")
@@ -36,15 +34,9 @@ def get_librelinkup_session():
     response.raise_for_status()
     data = response.json()
     
+    # Ignorer la redirection et continuer avec l'URL de base
     if 'redirect' in data['data'] and data['data']['redirect']:
-        region = data['data']['region']
-        regional_login_url = f'https://{region}.api.libreview.io/llu/auth/login'
-        print(f"Redirecting to regional URL: {regional_login_url}")
-        response = requests.post(regional_login_url, data=json.dumps(payload), headers=headers)
-        print(f"Redirected Response Status Code: {response.status_code}")
-        print(f"Redirected Response Text: {response.text}")
-        response.raise_for_status()
-        data = response.json()
+        print(f"Redirection suggested to region: {data['data']['region']}, but continuing with base URL")
     
     if 'authTicket' not in data['data']:
         raise ValueError("authTicket not found in response")
