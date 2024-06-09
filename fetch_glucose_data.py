@@ -2,6 +2,7 @@ import requests
 import json
 import datetime
 import os
+from requests.auth import HTTPProxyAuth
 
 # Vos informations d'identification
 LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL')
@@ -26,7 +27,7 @@ proxies = {
     'https': PROXY_URL,
 }
 
-proxy_auth = requests.auth.HTTPProxyAuth(PROXY_USERNAME, PROXY_PASSWORD)
+proxy_auth = HTTPProxyAuth(PROXY_USERNAME, PROXY_PASSWORD)
 
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
@@ -38,11 +39,12 @@ def get_librelinkup_session():
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
-        'product': 'llu.ios'
+        'product': 'llu.ios',
+        'Proxy-Authorization': f'Basic {PROXY_USERNAME}:{PROXY_PASSWORD}'
     }
 
     try:
-        response = requests.post(login_url, data=json.dumps(payload), headers=headers, proxies=proxies, auth=proxy_auth)
+        response = requests.post(login_url, data=json.dumps(payload), headers=headers, proxies=proxies)
         print(f"Initial Response Status Code: {response.status_code}")
         print(f"Initial Response Text: {response.text}")
         response.raise_for_status()
@@ -52,7 +54,7 @@ def get_librelinkup_session():
             region = data['data']['region']
             regional_login_url = f'https://{region}.api.libreview.io/llu/auth/login'
             print(f"Redirecting to regional URL: {regional_login_url}")
-            response = requests.post(regional_login_url, data=json.dumps(payload), headers=headers, proxies=proxies, auth=proxy_auth)
+            response = requests.post(regional_login_url, data=json.dumps(payload), headers=headers, proxies=proxies)
             print(f"Redirected Response Status Code: {response.status_code}")
             print(f"Redirected Response Text: {response.text}")
             response.raise_for_status()
@@ -80,9 +82,10 @@ def get_glucose_data(session_token):
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
-        'product': 'llu.ios'
+        'product': 'llu.ios',
+        'Proxy-Authorization': f'Basic {PROXY_USERNAME}:{PROXY_PASSWORD}'
     }
-    response = requests.get(data_url, headers=headers, proxies=proxies, auth=proxy_auth)
+    response = requests.get(data_url, headers=headers, proxies=proxies)
     print(f"Glucose Data Response Status Code: {response.status_code}")
     print(f"Glucose Data Response Text: {response.text}")
     response.raise_for_status()
@@ -100,9 +103,10 @@ def send_to_nightscout(glucose_data):
             }
             headers = {
                 'API-SECRET': NIGHTSCOUT_API_SECRET,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Proxy-Authorization': f'Basic {PROXY_USERNAME}:{PROXY_PASSWORD}'
             }
-            response = requests.post(f'{NIGHTSCOUT_URL}/api/v1/entries', data=json.dumps(payload), headers=headers, proxies=proxies, auth=proxy_auth)
+            response = requests.post(f'{NIGHTSCOUT_URL}/api/v1/entries', data=json.dumps(payload), headers=headers, proxies=proxies)
             response.raise_for_status()
             print(f"Successfully sent data to Nightscout: {payload}")
 
