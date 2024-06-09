@@ -17,9 +17,6 @@ PROXY_URL = os.getenv('PROXY_URL')
 PROXY_USERNAME = os.getenv('PROXY_USERNAME')
 PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
 
-print(f"NIGHTSCOUT_API_SECRET: {NIGHTSCOUT_API_SECRET}")
-print(f"NIGHTSCOUT_URL: {NIGHTSCOUT_URL}")
-
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
     payload = {
@@ -76,10 +73,9 @@ def get_glucose_data(session_token):
 def send_to_nightscout(glucose_data):
     entries_url = f"{NIGHTSCOUT_URL}/api/v1/entries"
     headers = {
-        'api-secret': NIGHTSCOUT_API_SECRET,
+        'API-SECRET': NIGHTSCOUT_API_SECRET,
         'Content-Type': 'application/json'
     }
-    print(f"Nightscout Headers: {headers}")
     for connection in glucose_data:
         if 'glucoseMeasurement' in connection:
             glucose_measurement = connection['glucoseMeasurement']
