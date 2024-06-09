@@ -2,10 +2,8 @@ import requests
 import json
 import datetime
 import os
-import sys
 import urllib.request
 from urllib.error import HTTPError, URLError
-from requests.auth import HTTPProxyAuth
 
 # Vos informations d'identification
 LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL')
@@ -26,19 +24,13 @@ print(f"NIGHTSCOUT_URL: {NIGHTSCOUT_URL}")
 print(f"NIGHTSCOUT_API_SECRET: {'*' * len(NIGHTSCOUT_API_SECRET) if NIGHTSCOUT_API_SECRET else None}")
 
 # Configuration du proxy pour urllib
+proxy_auth = f'{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'
 proxy_handler = urllib.request.ProxyHandler({
-    'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}',
-    'https': f'https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'
+    'http': f'http://{proxy_auth}',
+    'https': f'https://{proxy_auth}'
 })
 opener = urllib.request.build_opener(proxy_handler)
 urllib.request.install_opener(opener)
-
-# Configuration du proxy pour requests
-proxies = {
-    'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}',
-    'https': f'https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'
-}
-proxy_auth = HTTPProxyAuth(PROXY_USERNAME, PROXY_PASSWORD)
 
 def make_request(url, data=None, headers={}):
     req = urllib.request.Request(url, data=data, headers=headers)
@@ -65,12 +57,15 @@ def get_librelinkup_session():
     response_text = make_request(login_url, data=payload, headers=headers)
     if response_text:
         data = json.loads(response_text)
+        print(f"Initial Response JSON: {json.dumps(data, indent=2)}")
         if 'redirect' in data['data'] and data['data']['redirect']:
             region = data['data']['region']
             regional_login_url = f'https://{region}.api.libreview.io/llu/auth/login'
+            print(f"Redirecting to regional URL: {regional_login_url}")
             response_text = make_request(regional_login_url, data=payload, headers=headers)
             if response_text:
                 data = json.loads(response_text)
+                print(f"Redirected Response JSON: {json.dumps(data, indent=2)}")
         auth_ticket = data['data'].get('authTicket')
         if not auth_ticket:
             raise ValueError("authTicket not found in response")
@@ -86,7 +81,7 @@ def get_glucose_data(session_token):
         'version': '4.7.0',
         'product': 'llu.ios'
     }
-    response = requests.get(data_url, headers=headers, proxies=proxies, auth=proxy_auth)
+    response = requests.get(data_url, headers=headers, proxies={"http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}", "https": f"https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}"})
     print(f"Glucose Data Response Status Code: {response.status_code}")
     print(f"Glucose Data Response Text: {response.text}")
     response.raise_for_status()
@@ -106,7 +101,7 @@ def send_to_nightscout(glucose_data):
                 'API-SECRET': NIGHTSCOUT_API_SECRET,
                 'Content-Type': 'application/json'
             }
-            response = requests.post(f'{NIGHTSCOUT_URL}/api/v1/entries', data=json.dumps(payload), headers=headers, proxies=proxies, auth=proxy_auth)
+            response = requests.post(f'{NIGHTSCOUT_URL}/api/v1/entries', data=json.dumps(payload), headers=headers, proxies={"http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}", "https": f"https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}"})
             response.raise_for_status()
             print(f"Successfully sent data to Nightscout: {payload}")
 
