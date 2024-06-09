@@ -26,7 +26,7 @@ def get_librelinkup_session():
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
         'product': 'llu.ios',
-        'Accept-Language': 'fr-FR'
+        'Accept-Language': 'en-US'
     }
 
     try:
@@ -36,7 +36,7 @@ def get_librelinkup_session():
         response.raise_for_status()
         data = response.json()
 
-        # Ignorer la redirection et utiliser l'URL de base avec les en-têtes configurés
+        # Ajout d'un journal pour afficher le contenu de la réponse JSON
         print(f"Response JSON: {json.dumps(data, indent=2)}")
 
         auth_ticket = data['data'].get('authTicket')
@@ -60,7 +60,7 @@ def get_glucose_data(session_token):
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
         'product': 'llu.ios',
-        'Accept-Language': 'fr-FR'
+        'Accept-Language': 'en-US'
     }
     response = requests.get(data_url, headers=headers)
     print(f"Glucose Data Response Status Code: {response.status_code}")
