@@ -28,26 +28,28 @@ def get_librelinkup_session():
         'product': 'llu.ios'
     }
 
-    response = requests.post(login_url, data=json.dumps(payload), headers=headers)
-    print(f"Initial Response Status Code: {response.status_code}")
-    print(f"Initial Response Text: {response.text}")
-    response.raise_for_status()
-    data = response.json()
-
-    if 'redirect' in data['data'] and data['data']['redirect']:
-        region = data['data']['region']
-        login_url = f'https://{region}.api.libreview.io/llu/auth/login'
+    try:
         response = requests.post(login_url, data=json.dumps(payload), headers=headers)
-        print(f"Redirected Response Status Code: {response.status_code}")
-        print(f"Redirected Response Text: {response.text}")
+        print(f"Initial Response Status Code: {response.status_code}")
+        print(f"Initial Response Text: {response.text}")
         response.raise_for_status()
         data = response.json()
 
-    auth_ticket = data['data'].get('authTicket')
-    if not auth_ticket:
-        raise ValueError("authTicket not found in response")
-    
-    return auth_ticket
+        if 'redirect' in data['data'] and data['data']['redirect']:
+            print(f"Redirection suggested to region: {data['data']['region']}, but ignoring redirection")
+
+        auth_ticket = data['data'].get('authTicket')
+        if not auth_ticket:
+            raise ValueError("authTicket not found in response")
+        
+        return auth_ticket
+
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP error occurred: {err}")
+        raise
+    except Exception as err:
+        print(f"An error occurred: {err}")
+        raise
 
 def get_glucose_data(session_token):
     data_url = 'https://api.libreview.io/llu/connections'
