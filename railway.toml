@@ -1,0 +1,10 @@
+[build]
+  command = "pip install -r requirements.txt"
+
+[start]
+  command = "python fetch_glucose_data.py"
+
+[deploy]
+  # Specify a cron job to run the script every minute
+  schedule = "* * * * *"
+  command = "python fetch_glucose_data.py"
