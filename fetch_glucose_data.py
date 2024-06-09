@@ -21,6 +21,8 @@ def get_librelinkup_session():
         'product': 'llu.ios'
     }
     response = requests.post(login_url, data=json.dumps(payload), headers=headers)
+    print(f"Response Status Code: {response.status_code}")
+    print(f"Response Text: {response.text}")
     response.raise_for_status()
     return response.json()['data']['authTicket']
 
@@ -34,6 +36,8 @@ def get_glucose_data(session_token):
         'product': 'llu.ios'
     }
     response = requests.get(data_url, headers=headers)
+    print(f"Response Status Code: {response.status_code}")
+    print(f"Response Text: {response.text}")
     response.raise_for_status()
     return response.json()['data']
 
@@ -53,14 +57,20 @@ def send_to_nightscout(glucose_data):
             }
             response = requests.post(f'{NIGHTSCOUT_URL}/api/v1/entries', data=json.dumps(payload), headers=headers)
             response.raise_for_status()
+            print(f"Successfully sent data to Nightscout: {payload}")
 
 if __name__ == '__main__':
     try:
         session_token = get_librelinkup_session()
         connections = get_glucose_data(session_token['token'])
         for connection in connections:
+            print(f"Connection ID: {connection['id']}")
             if 'glucoseMeasurement' in connection:
+                glucose_measurement = connection['glucoseMeasurement']
+                print(f"Date: {glucose_measurement['Timestamp']}, Glucose Value: {glucose_measurement['Value']}")
                 send_to_nightscout([connection])
+            else:
+                print("No glucose measurement data available.")
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
     except Exception as err:
