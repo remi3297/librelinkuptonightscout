@@ -25,7 +25,8 @@ def get_librelinkup_session():
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
-        'product': 'llu.ios'
+        'product': 'llu.ios',
+        'Accept-Language': 'fr-FR'
     }
 
     try:
@@ -35,17 +36,7 @@ def get_librelinkup_session():
         response.raise_for_status()
         data = response.json()
 
-        if 'redirect' in data['data'] and data['data']['redirect']:
-            region = data['data']['region']
-            login_url = f'https://{region}.api.libreview.io/llu/auth/login'
-            print(f"Redirecting to regional URL: {login_url}")
-            response = requests.post(login_url, data=json.dumps(payload), headers=headers)
-            print(f"Redirected Response Status Code: {response.status_code}")
-            print(f"Redirected Response Text: {response.text}")
-            response.raise_for_status()
-            data = response.json()
-
-        # Ajout d'un journal pour afficher le contenu de la réponse JSON
+        # Ignorer la redirection et utiliser l'URL de base avec les en-têtes configurés
         print(f"Response JSON: {json.dumps(data, indent=2)}")
 
         auth_ticket = data['data'].get('authTicket')
@@ -68,7 +59,8 @@ def get_glucose_data(session_token):
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
-        'product': 'llu.ios'
+        'product': 'llu.ios',
+        'Accept-Language': 'fr-FR'
     }
     response = requests.get(data_url, headers=headers)
     print(f"Glucose Data Response Status Code: {response.status_code}")
