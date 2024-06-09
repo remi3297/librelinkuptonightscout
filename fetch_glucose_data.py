@@ -9,7 +9,8 @@ NIGHTSCOUT_URL = os.getenv('NIGHTSCOUT_URL')
 NIGHTSCOUT_API_SECRET = os.getenv('NIGHTSCOUT_API_SECRET')
 
 def get_librelinkup_session():
-    login_url = 'https://api.libreview.io/llu/auth/login'
+    base_url = 'https://api.libreview.io'
+    login_url = f'{base_url}/llu/auth/login'
     payload = {
         'email': LIBRELINKUP_EMAIL,
         'password': LIBRELINKUP_PASSWORD
@@ -20,11 +21,29 @@ def get_librelinkup_session():
         'version': '4.7.0',
         'product': 'llu.ios'
     }
+    
+    # Initial login attempt
     response = requests.post(login_url, data=json.dumps(payload), headers=headers)
     print(f"Response Status Code: {response.status_code}")
     print(f"Response Text: {response.text}")
     response.raise_for_status()
-    return response.json()['data']['authTicket']
+    data = response.json()
+    
+    # Handle redirect
+    if 'redirect' in data['data'] and data['data']['redirect']:
+        region = data['data']['region']
+        login_url = f'https://{region}.api.libreview.io/llu/auth/login'
+        response = requests.post(login_url, data=json.dumps(payload), headers=headers)
+        print(f"Redirected Response Status Code: {response.status_code}")
+        print(f"Redirected Response Text: {response.text}")
+        response.raise_for_status()
+        data = response.json()
+    
+    auth_ticket = data['data'].get('authTicket')
+    if not auth_ticket:
+        raise ValueError("authTicket not found in response")
+    
+    return auth_ticket
 
 def get_glucose_data(session_token):
     data_url = 'https://api.libreview.io/llu/connections'
