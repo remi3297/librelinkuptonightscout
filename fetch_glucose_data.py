@@ -2,7 +2,7 @@ import requests
 import json
 import datetime
 import os
-from requests.auth import HTTPProxyAuth
+import base64
 
 # Vos informations d'identification
 LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL')
@@ -27,7 +27,12 @@ proxies = {
     'https': PROXY_URL,
 }
 
-proxy_auth = HTTPProxyAuth(PROXY_USERNAME, PROXY_PASSWORD)
+# Encode les informations d'identification pour l'authentification de base
+proxy_auth = f"{PROXY_USERNAME}:{PROXY_PASSWORD}"
+encoded_auth = base64.b64encode(proxy_auth.encode('utf-8')).decode('utf-8')
+proxy_headers = {
+    'Proxy-Authorization': f'Basic {encoded_auth}'
+}
 
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
@@ -40,7 +45,7 @@ def get_librelinkup_session():
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
         'product': 'llu.ios',
-        'Proxy-Authorization': f'Basic {PROXY_USERNAME}:{PROXY_PASSWORD}'
+        **proxy_headers  # Ajoute les en-têtes d'authentification du proxy
     }
 
     try:
@@ -83,7 +88,7 @@ def get_glucose_data(session_token):
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
         'product': 'llu.ios',
-        'Proxy-Authorization': f'Basic {PROXY_USERNAME}:{PROXY_PASSWORD}'
+        **proxy_headers  # Ajoute les en-têtes d'authentification du proxy
     }
     response = requests.get(data_url, headers=headers, proxies=proxies)
     print(f"Glucose Data Response Status Code: {response.status_code}")
@@ -104,7 +109,7 @@ def send_to_nightscout(glucose_data):
             headers = {
                 'API-SECRET': NIGHTSCOUT_API_SECRET,
                 'Content-Type': 'application/json',
-                'Proxy-Authorization': f'Basic {PROXY_USERNAME}:{PROXY_PASSWORD}'
+                **proxy_headers  # Ajoute les en-têtes d'authentification du proxy
             }
             response = requests.post(f'{NIGHTSCOUT_URL}/api/v1/entries', data=json.dumps(payload), headers=headers, proxies=proxies)
             response.raise_for_status()
