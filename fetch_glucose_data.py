@@ -3,74 +3,35 @@ import json
 import datetime
 import os
 
-# Vos informations d'identification
 LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL')
 LIBRELINKUP_PASSWORD = os.getenv('LIBRELINKUP_PASSWORD')
-NIGHTSCOUT_URL = os.getenv('NIGHTSCOUT_URL')
 NIGHTSCOUT_API_SECRET = os.getenv('NIGHTSCOUT_API_SECRET')
-
-# Informations du proxy
+NIGHTSCOUT_URL = os.getenv('NIGHTSCOUT_URL')
 PROXY_URL = os.getenv('PROXY_URL')
 PROXY_USERNAME = os.getenv('PROXY_USERNAME')
 PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
 
-print("Starting fetch_glucose_data.py script")
-
-print(f"LIBRELINKUP_EMAIL: {LIBRELINKUP_EMAIL}")
-print(f"LIBRELINKUP_PASSWORD: {'*' * len(LIBRELINKUP_PASSWORD) if LIBRELINKUP_PASSWORD else None}")
-print(f"NIGHTSCOUT_URL: {NIGHTSCOUT_URL}")
-print(f"NIGHTSCOUT_API_SECRET: {'*' * len(NIGHTSCOUT_API_SECRET) if NIGHTSCOUT_API_SECRET else None}")
-
-# Configuration du proxy pour requests
-proxies = {
-    'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}',
-    'https': f'https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'
-}
-
-# Function to make requests with proxy configuration
-def make_request(url, method='GET', data=None, headers={}):
-    try:
-        if method == 'GET':
-            response = requests.get(url, headers=headers, proxies=proxies, auth=(PROXY_USERNAME, PROXY_PASSWORD))
-        elif method == 'POST':
-            response = requests.post(url, data=data, headers=headers, proxies=proxies, auth=(PROXY_USERNAME, PROXY_PASSWORD))
-        response.raise_for_status()
-        return response.text
-    except requests.exceptions.HTTPError as e:
-        print(f'HTTPError: {e.response.status_code} - {e.response.text}')
-    except requests.exceptions.RequestException as e:
-        print(f'RequestException: {e}')
-    return None
-
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
-    payload = json.dumps({
+    payload = {
         'email': LIBRELINKUP_EMAIL,
         'password': LIBRELINKUP_PASSWORD
-    })
+    }
     headers = {
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
         'product': 'llu.ios'
     }
-    response_text = make_request(login_url, method='POST', data=payload, headers=headers)
-    if response_text:
-        data = json.loads(response_text)
-        print(f"Initial Response JSON: {json.dumps(data, indent=2)}")
-        if 'redirect' in data['data'] and data['data']['redirect']:
-            region = data['data']['region']
-            regional_login_url = f'https://{region}.api.libreview.io/llu/auth/login'
-            print(f"Redirecting to regional URL: {regional_login_url}")
-            response_text = make_request(regional_login_url, method='POST', data=payload, headers=headers)
-            if response_text:
-                data = json.loads(response_text)
-                print(f"Redirected Response JSON: {json.dumps(data, indent=2)}")
-        auth_ticket = data['data'].get('authTicket')
-        if not auth_ticket:
-            raise ValueError("authTicket not found in response")
-        return auth_ticket
-    return None
+    proxies = {
+        "http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}",
+        "https": f"https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}",
+    }
+    response = requests.post(login_url, data=json.dumps(payload), headers=headers, proxies=proxies)
+    print(f"Response Status Code: {response.status_code}")
+    print(f"Response Text: {response.text}")
+    response.raise_for_status()
+    return response.json()['data']['authTicket']
 
 def get_glucose_data(session_token):
     data_url = 'https://api.libreview.io/llu/connections'
@@ -81,51 +42,42 @@ def get_glucose_data(session_token):
         'version': '4.7.0',
         'product': 'llu.ios'
     }
-    response_text = make_request(data_url, method='GET', headers=headers)
-    if response_text:
-        return json.loads(response_text)['data']
-    return None
+    proxies = {
+        "http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}",
+        "https": f"https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}",
+    }
+    response = requests.get(data_url, headers=headers, proxies=proxies)
+    print(f"Response Status Code: {response.status_code}")
+    print(f"Response Text: {response.text}")
+    response.raise_for_status()
+    return response.json()['data']
 
 def send_to_nightscout(glucose_data):
-    for record in glucose_data:
-        if 'glucoseMeasurement' in record:
-            glucose_measurement = record['glucoseMeasurement']
-            payload = json.dumps({
-                'date': int(datetime.datetime.strptime(glucose_measurement['Timestamp'], '%m/%d/%Y %I:%M:%S %p').timestamp() * 1000),
-                'sgv': glucose_measurement['Value'],
-                'direction': 'None',
-                'type': 'sgv'
-            })
-            headers = {
-                'API-SECRET': NIGHTSCOUT_API_SECRET,
-                'Content-Type': 'application/json'
+    entries_url = f"{NIGHTSCOUT_URL}/api/v1/entries"
+    headers = {
+        'API-SECRET': NIGHTSCOUT_API_SECRET,
+        'Content-Type': 'application/json'
+    }
+    for connection in glucose_data:
+        if 'glucoseMeasurement' in connection:
+            glucose_measurement = connection['glucoseMeasurement']
+            entry = {
+                "date": int(datetime.datetime.strptime(glucose_measurement['Timestamp'], '%Y-%m-%dT%H:%M:%S').timestamp() * 1000),
+                "sgv": glucose_measurement['Value'],
+                "direction": "Flat",
+                "device": "LibreLinkUp"
             }
-            response_text = make_request(f'{NIGHTSCOUT_URL}/api/v1/entries', method='POST', data=payload, headers=headers)
-            print(f"Successfully sent data to Nightscout: {payload}")
+            response = requests.post(entries_url, headers=headers, data=json.dumps(entry))
+            print(f"Nightscout Response Status Code: {response.status_code}")
+            print(f"Nightscout Response Text: {response.text}")
+            response.raise_for_status()
 
 if __name__ == '__main__':
     try:
         session_token = get_librelinkup_session()
-        if session_token:
-            print("Successfully obtained session token")
-            connections = get_glucose_data(session_token)
-            if connections:
-                print("Successfully obtained glucose data")
-                for connection in connections:
-                    print(f"Connection ID: {connection['id']}")
-                    if 'glucoseMeasurement' in connection:
-                        glucose_measurement = connection['glucoseMeasurement']
-                        print(f"Date: {glucose_measurement['Timestamp']}, Glucose Value: {glucose_measurement['Value']}")
-                        send_to_nightscout([connection])
-                    else:
-                        print("No glucose measurement data available.")
-            else:
-                print("No connections found.")
-        else:
-            print("Failed to obtain session token.")
+        glucose_data = get_glucose_data(session_token['token'])
+        send_to_nightscout(glucose_data)
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
-    except ValueError as err:
-        print(f"Value error occurred: {err}")
     except Exception as err:
         print(f"An error occurred: {err}")
