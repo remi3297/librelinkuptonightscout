@@ -17,6 +17,9 @@ PROXY_URL = os.getenv('PROXY_URL')
 PROXY_USERNAME = os.getenv('PROXY_USERNAME')
 PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
 
+print(f"NIGHTSCOUT_API_SECRET: {NIGHTSCOUT_API_SECRET}")
+print(f"NIGHTSCOUT_URL: {NIGHTSCOUT_URL}")
+
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
     payload = {
