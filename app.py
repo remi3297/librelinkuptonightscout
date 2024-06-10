@@ -107,7 +107,7 @@ def update_glucose_data():
     try:
         session_token = get_librelinkup_session()
         glucose_data = get_glucose_data(session_token)
-        logging.info("Glucose data updated successfully.")
+        logging.info(f"Glucose data updated successfully: {glucose_data}")
     except Exception as e:
         logging.error(f"Error during glucose data update: {e}")
 
