@@ -6,7 +6,6 @@ import urllib.request
 from dotenv import load_dotenv
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
 
 app = Flask(__name__)
 
@@ -107,7 +106,6 @@ def update_glucose_data():
     logging.info("Starting glucose data update")
     try:
         session_token = get_librelinkup_session()
-        logging.info(f"Session token obtained: {session_token}")
         glucose_data = get_glucose_data(session_token)
         logging.info(f"Glucose data updated successfully: {glucose_data}")
     except Exception as e:
@@ -133,7 +131,8 @@ if __name__ == '__main__':
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         func=update_glucose_data,
-        trigger=IntervalTrigger(minutes=1),
+        trigger='interval',
+        minutes=1,
         id='update_glucose_data',
         name='Update glucose data every minute',
         replace_existing=True)
