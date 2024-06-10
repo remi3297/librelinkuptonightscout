@@ -101,7 +101,7 @@ def get_glucose_data(session_token):
 def send_to_nightscout(glucose_data):
     entries_url = f"{NIGHTSCOUT_URL}/api/v1/entries"
     headers = {
-        'API-SECRET': NIGHTSCOUT_API_SECRET,
+        'api-secret': NIGHTSCOUT_API_SECRET,  # Assurez-vous que la clé est en minuscules
         'Content-Type': 'application/json'
     }
     for connection in glucose_data:
