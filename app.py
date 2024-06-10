@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 import requests
 import json
 import os
+import datetime
 import urllib.request
 from dotenv import load_dotenv
 import logging
@@ -126,7 +127,6 @@ def get_glucose():
 
 @app.route('/update_glucose', methods=['POST'])
 def trigger_update():
-    logging.info("Manual trigger for glucose data update received")
     update_glucose_data()
     return jsonify({"status": "success"}), 200
 
