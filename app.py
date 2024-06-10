@@ -104,6 +104,7 @@ def get_glucose_data(session_token):
 
 def update_glucose_data():
     global glucose_data
+    logging.info("Starting glucose data update")
     try:
         session_token = get_librelinkup_session()
         glucose_data = get_glucose_data(session_token)
@@ -112,6 +113,7 @@ def update_glucose_data():
         logging.error(f"Error during glucose data update: {e}")
 
 def schedule_updates():
+    logging.info("Scheduling updates every minute")
     update_glucose_data()
     threading.Timer(60, schedule_updates).start()  # Planifier la mise à jour toutes les minutes
 
