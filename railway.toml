@@ -1,11 +1,9 @@
 [build]
-  # Utilisez une image de base Python
-  base = "python:3.9-slim"
+  builder = "Nixpacks"
 
 [deploy]
   [deploy.services]
-    # Nom de votre service
-    app = { start = "gunicorn --bind 0.0.0.0:5000 app:app" }
+    web = { start = "gunicorn --bind 0.0.0.0:5000 app:app" }
 
   [[plugins]]
     name = "postgresql"  # Si vous avez besoin d'une base de données PostgreSQL
