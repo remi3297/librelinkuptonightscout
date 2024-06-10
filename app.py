@@ -127,6 +127,7 @@ def get_glucose():
 
 @app.route('/update_glucose', methods=['POST'])
 def trigger_update():
+    logging.info("Manual trigger for glucose data update received")
     update_glucose_data()
     return jsonify({"status": "success"}), 200
 
