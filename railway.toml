@@ -1,10 +1,10 @@
 [build]
-  command = "pip install -r requirements.txt"
+command = "pip install -r requirements.txt"
 
 [start]
-  command = "python fetch_glucose_data.py"
+command = "python app.py"
 
 [deploy]
-  # Specify a cron job to run the script every minute
-  schedule = "* * * * *"
-  command = "python fetch_glucose_data.py"
+# Specifier une tâche cron pour exécuter le script chaque minute
+schedule = "* * * * *"
+command = "curl -X POST https://your-railway-app-url/update_glucose"
