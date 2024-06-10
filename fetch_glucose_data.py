@@ -1,3 +1,4 @@
+from flask import Flask, jsonify, request
 import requests
 import json
 import os
@@ -5,7 +6,8 @@ import datetime
 import urllib.request
 from dotenv import load_dotenv
 import logging
-import hashlib
+
+app = Flask(__name__)
 
 # Configurer les logs
 logging.basicConfig(level=logging.DEBUG)
@@ -16,14 +18,11 @@ load_dotenv()
 # Définir les variables d'environnement
 LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL')
 LIBRELINKUP_PASSWORD = os.getenv('LIBRELINKUP_PASSWORD')
-NIGHTSCOUT_API_SECRET = os.getenv('NIGHTSCOUT_API_SECRET')
-NIGHTSCOUT_URL = os.getenv('NIGHTSCOUT_URL')
 PROXY_URL = os.getenv('PROXY_URL')
 PROXY_USERNAME = os.getenv('PROXY_USERNAME')
 PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
 
-# Générer le hash SHA1 de l'API secret
-hashed_api_secret = hashlib.sha1(NIGHTSCOUT_API_SECRET.encode()).hexdigest()
+glucose_data = {}
 
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
@@ -102,43 +101,21 @@ def get_glucose_data(session_token):
         logging.error(f"Error during glucose data retrieval: {e}")
         raise
 
-def send_to_nightscout(glucose_data):
-    entries_url = f"{NIGHTSCOUT_URL}/api/v1/entries"
-    headers = {
-        'api-secret': hashed_api_secret,  # Utilisez le hash SHA1
-        'Content-Type': 'application/json'
-    }
-    for connection in glucose_data:
-        if 'glucoseMeasurement' in connection:
-            glucose_measurement = connection['glucoseMeasurement']
-            # Convertir le format de date et heure reçu
-            timestamp_str = glucose_measurement['Timestamp']
-            timestamp_dt = datetime.datetime.strptime(timestamp_str, '%m/%d/%Y %I:%M:%S %p')
-            entry = {
-                "date": int(timestamp_dt.timestamp() * 1000),
-                "sgv": glucose_measurement['Value'],
-                "direction": "Flat",
-                "device": "LibreLinkUp"
-            }
-            try:
-                response = requests.post(entries_url, headers=headers, data=json.dumps(entry))
-                logging.info(f"Nightscout Response Status Code: {response.status_code}")
-                logging.info(f"Nightscout Response Text: {response.text}")
-                response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                logging.error(f"HTTP error occurred: {e}")
-                raise
-            except Exception as e:
-                logging.error(f"An error occurred while sending data to Nightscout: {e}")
-                raise
-
-if __name__ == '__main__':
+@app.route('/update_glucose', methods=['POST'])
+def update_glucose():
+    global glucose_data
     try:
         session_token = get_librelinkup_session()
-        logging.info(f"Session token received: {session_token}")
         glucose_data = get_glucose_data(session_token)
-        send_to_nightscout(glucose_data)
-    except requests.exceptions.HTTPError as err:
-        logging.error(f"HTTP error occurred: {err}")
-    except Exception as err:
-        logging.error(f"An error occurred: {err}")
+        return jsonify({"status": "success", "data": glucose_data}), 200
+    except Exception as e:
+        logging.error(f"Error during glucose data update: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/get_glucose', methods=['GET'])
+def get_glucose():
+    global glucose_data
+    return jsonify(glucose_data), 200
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
