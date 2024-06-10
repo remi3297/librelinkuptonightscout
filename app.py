@@ -120,6 +120,11 @@ def get_glucose():
     global glucose_data
     return jsonify(glucose_data), 200
 
+@app.route('/update_glucose', methods=['POST'])
+def trigger_update():
+    update_glucose_data()
+    return jsonify({"status": "success"}), 200
+
 if __name__ == '__main__':
     logging.info("Starting the Flask app and scheduling updates.")
     schedule_updates()  # Commencer la mise à jour périodique des données de glucose
