@@ -3,4 +3,5 @@ urllib3
 python-dotenv
 flask
 gunicorn
+schedule
 
