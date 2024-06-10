@@ -24,5 +24,5 @@ COPY . .
 # Exposer le port de l'application
 EXPOSE 5000
 
-# Démarrer cron et l'application Flask
-CMD cron && python app.py
+# Démarrer cron et l'application Flask avec Gunicorn
+CMD cron && gunicorn --bind 0.0.0.0:5000 app:app
