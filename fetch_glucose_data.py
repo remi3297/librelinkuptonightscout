@@ -48,6 +48,17 @@ def get_librelinkup_session():
             logging.info(f"Response Status Code: {response.getcode()}")
             logging.info(f"Response Text: {response_data}")
             response_json = json.loads(response_data)
+            
+            if 'redirect' in response_json['data'] and response_json['data']['redirect']:
+                region = response_json['data']['region']
+                login_url = f'https://api-{region}.libreview.io/llu/auth/login'
+                req = urllib.request.Request(login_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
+                with urllib.request.urlopen(req) as response:
+                    response_data = response.read().decode('utf-8')
+                    logging.info(f"Response Status Code after redirect: {response.getcode()}")
+                    logging.info(f"Response Text after redirect: {response_data}")
+                    response_json = json.loads(response_data)
+
             return response_json['data']['authTicket']['token']
     except Exception as e:
         logging.error(f"Error during LibreLinkUp session retrieval: {e}")
