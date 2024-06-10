@@ -6,5 +6,4 @@ command = "python app.py"
 
 [deploy]
 # Specifier une tâche cron pour exécuter le script chaque minute
-schedule = "* * * * *"
 command = "curl -X POST https://librelinkuptonightscout-production.up.railway.app/update_glucose"
