@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 import requests
 import json
 import os
@@ -6,6 +6,7 @@ import datetime
 import urllib.request
 from dotenv import load_dotenv
 import logging
+import threading
 
 app = Flask(__name__)
 
@@ -101,16 +102,18 @@ def get_glucose_data(session_token):
         logging.error(f"Error during glucose data retrieval: {e}")
         raise
 
-@app.route('/update_glucose', methods=['POST'])
-def update_glucose():
+def update_glucose_data():
     global glucose_data
     try:
         session_token = get_librelinkup_session()
         glucose_data = get_glucose_data(session_token)
-        return jsonify({"status": "success", "data": glucose_data}), 200
+        logging.info("Glucose data updated successfully.")
     except Exception as e:
         logging.error(f"Error during glucose data update: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+
+def schedule_updates():
+    update_glucose_data()
+    threading.Timer(60, schedule_updates).start()  # Planifier la mise à jour toutes les minutes
 
 @app.route('/get_glucose', methods=['GET'])
 def get_glucose():
@@ -118,4 +121,6 @@ def get_glucose():
     return jsonify(glucose_data), 200
 
 if __name__ == '__main__':
+    logging.info("Starting the Flask app and scheduling updates.")
+    schedule_updates()  # Commencer la mise à jour périodique des données de glucose
     app.run(host='0.0.0.0', port=5000)
