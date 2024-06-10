@@ -5,9 +5,8 @@ import os
 import urllib.request
 from dotenv import load_dotenv
 import logging
-import schedule
-import time
-from threading import Thread
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
 app = Flask(__name__)
 
@@ -127,22 +126,21 @@ def trigger_update():
     update_glucose_data()
     return jsonify({"status": "success"}), 200
 
-def schedule_glucose_updates():
-    logging.info("Starting the schedule for glucose updates")
-    schedule.every(1).minute.do(update_glucose_data)
-
-    while True:
-        schedule.run_pending()
-        logging.info("Schedule running, waiting for tasks...")
-        time.sleep(1)
-
 if __name__ == '__main__':
     logging.info("Starting the Flask app.")
     
-    # Démarrer le thread pour les mises à jour planifiées
-    update_thread = Thread(target=schedule_glucose_updates)
-    update_thread.daemon = True
-    update_thread.start()
-    logging.info("Scheduled updates thread started.")
+    # Planifier les mises à jour de glucose avec APScheduler
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(
+        func=update_glucose_data,
+        trigger=IntervalTrigger(minutes=1),
+        id='update_glucose_data',
+        name='Update glucose data every minute',
+        replace_existing=True)
+    scheduler.start()
+    logging.info("Scheduled updates started.")
     
-    app.run(host='0.0.0.0', port=5000)
+    try:
+        app.run(host='0.0.0.0', port=5000)
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()
