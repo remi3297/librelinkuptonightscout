@@ -1,5 +1,6 @@
 FROM python:3.9-slim
 
+# Installer cron et curl
 RUN apt-get update && apt-get install -y cron curl
 
 # Installer les dépendances Python
