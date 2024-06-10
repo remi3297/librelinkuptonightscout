@@ -4,4 +4,4 @@ python-dotenv
 Flask
 gunicorn
 schedule
-gevent
+apscheduler
