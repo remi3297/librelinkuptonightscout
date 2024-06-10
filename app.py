@@ -6,7 +6,6 @@ import datetime
 import urllib.request
 from dotenv import load_dotenv
 import logging
-import threading
 
 app = Flask(__name__)
 
@@ -112,11 +111,6 @@ def update_glucose_data():
     except Exception as e:
         logging.error(f"Error during glucose data update: {e}")
 
-def schedule_updates():
-    logging.info("Scheduling updates every minute")
-    update_glucose_data()
-    threading.Timer(60, schedule_updates).start()  # Planifier la mise à jour toutes les minutes
-
 @app.route('/get_glucose', methods=['GET'])
 def get_glucose():
     global glucose_data
@@ -131,6 +125,5 @@ def trigger_update():
     return jsonify({"status": "success"}), 200
 
 if __name__ == '__main__':
-    logging.info("Starting the Flask app and scheduling updates.")
-    schedule_updates()  # Commencer la mise à jour périodique des données de glucose
+    logging.info("Starting the Flask app.")
     app.run(host='0.0.0.0', port=5000)
