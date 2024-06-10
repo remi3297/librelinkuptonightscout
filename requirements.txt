@@ -2,6 +2,6 @@ requests
 urllib3
 python-dotenv
 Flask
-gunicorn
+uvicorn
 schedule
 apscheduler
