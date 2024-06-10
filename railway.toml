@@ -3,7 +3,7 @@
 
 [deploy]
   [deploy.services]
-    web = { start = "gunicorn --bind 0.0.0.0:5000 app:app" }
+    web = { start = "uvicorn app:app --host 0.0.0.0 --port 5000" }
 
   [[plugins]]
     name = "postgresql"  # Si vous avez besoin d'une base de données PostgreSQL
