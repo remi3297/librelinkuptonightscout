@@ -4,6 +4,10 @@ import os
 import datetime
 import urllib.request
 from dotenv import load_dotenv
+import logging
+
+# Configurer les logs
+logging.basicConfig(level=logging.DEBUG)
 
 # Charger les variables d'environnement depuis un fichier .env si présent
 load_dotenv()
@@ -37,13 +41,17 @@ def get_librelinkup_session():
     opener = urllib.request.build_opener(proxy_handler)
     urllib.request.install_opener(opener)
     
-    req = urllib.request.Request(login_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
-    with urllib.request.urlopen(req) as response:
-        response_data = response.read().decode('utf-8')
-        print(f"Response Status Code: {response.getcode()}")
-        print(f"Response Text: {response_data}")
-        response_json = json.loads(response_data)
-        return response_json['data']['authTicket']
+    try:
+        req = urllib.request.Request(login_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
+        with urllib.request.urlopen(req) as response:
+            response_data = response.read().decode('utf-8')
+            logging.info(f"Response Status Code: {response.getcode()}")
+            logging.info(f"Response Text: {response_data}")
+            response_json = json.loads(response_data)
+            return response_json['data']['authTicket']
+    except Exception as e:
+        logging.error(f"Error during LibreLinkUp session retrieval: {e}")
+        raise
 
 def get_glucose_data(session_token):
     data_url = 'https://api.libreview.io/llu/connections'
@@ -62,13 +70,17 @@ def get_glucose_data(session_token):
     opener = urllib.request.build_opener(proxy_handler)
     urllib.request.install_opener(opener)
     
-    req = urllib.request.Request(data_url, headers=headers)
-    with urllib.request.urlopen(req) as response:
-        response_data = response.read().decode('utf-8')
-        print(f"Response Status Code: {response.getcode()}")
-        print(f"Response Text: {response_data}")
-        response_json = json.loads(response_data)
-        return response_json['data']
+    try:
+        req = urllib.request.Request(data_url, headers=headers)
+        with urllib.request.urlopen(req) as response:
+            response_data = response.read().decode('utf-8')
+            logging.info(f"Response Status Code: {response.getcode()}")
+            logging.info(f"Response Text: {response_data}")
+            response_json = json.loads(response_data)
+            return response_json['data']
+    except Exception as e:
+        logging.error(f"Error during glucose data retrieval: {e}")
+        raise
 
 def send_to_nightscout(glucose_data):
     entries_url = f"{NIGHTSCOUT_URL}/api/v1/entries"
@@ -88,17 +100,24 @@ def send_to_nightscout(glucose_data):
                 "direction": "Flat",
                 "device": "LibreLinkUp"
             }
-            response = requests.post(entries_url, headers=headers, data=json.dumps(entry))
-            print(f"Nightscout Response Status Code: {response.status_code}")
-            print(f"Nightscout Response Text: {response.text}")
-            response.raise_for_status()
+            try:
+                response = requests.post(entries_url, headers=headers, data=json.dumps(entry))
+                logging.info(f"Nightscout Response Status Code: {response.status_code}")
+                logging.info(f"Nightscout Response Text: {response.text}")
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                logging.error(f"HTTP error occurred: {e}")
+                raise
+            except Exception as e:
+                logging.error(f"An error occurred while sending data to Nightscout: {e}")
+                raise
 
 if __name__ == '__main__':
     try:
         session_token = get_librelinkup_session()
-        glucose_data = get_glucose_data(session_token['token'])
+        glucose_data = get_glucose_data(session_token)
         send_to_nightscout(glucose_data)
     except requests.exceptions.HTTPError as err:
-        print(f"HTTP error occurred: {err}")
+        logging.error(f"HTTP error occurred: {err}")
     except Exception as err:
-        print(f"An error occurred: {err}")
+        logging.error(f"An error occurred: {err}")
