@@ -7,8 +7,6 @@ import urllib.request
 from dotenv import load_dotenv
 import logging
 import threading
-import time
-import schedule
 
 app = Flask(__name__)
 
@@ -104,47 +102,33 @@ def get_glucose_data(session_token):
         logging.error(f"Error during glucose data retrieval: {e}")
         raise
 
-@app.route('/update_glucose', methods=['POST'])
-def update_glucose():
+def update_glucose_data():
     global glucose_data
     try:
         session_token = get_librelinkup_session()
         glucose_data = get_glucose_data(session_token)
-        logging.info("Glucose data updated successfully.")
-        return jsonify({"status": "success"}), 200
+        logging.info(f"Glucose data updated successfully: {glucose_data}")
     except Exception as e:
-        logging.error(f"Failed to update glucose data: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        logging.error(f"Error during glucose data update: {e}")
+
+def schedule_updates():
+    update_glucose_data()
+    threading.Timer(60, schedule_updates).start()  # Planifier la mise à jour toutes les minutes
 
 @app.route('/get_glucose', methods=['GET'])
 def get_glucose():
-    if glucose_data:
-        glucose_measurements = [
-            {
-                "timestamp": item["glucoseMeasurement"]["Timestamp"],
-                "value": item["glucoseMeasurement"]["Value"]
-            }
-            for item in glucose_data
-        ]
-        return jsonify(glucose_measurements), 200
-    return jsonify([]), 200
+    global glucose_data
+    if glucose_data and 'glucoseMeasurement' in glucose_data[0]:
+        glucose_value = glucose_data[0]['glucoseMeasurement']['Value']
+        return jsonify({"glucose_value": glucose_value}), 200
+    return jsonify({"error": "No glucose data available"}), 404
 
-def job():
-    with app.app_context():
-        update_glucose()
-
-# Planifiez le travail à exécuter chaque minute
-schedule.every(1).minute.do(job)
-
-def run_schedule():
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+@app.route('/update_glucose', methods=['POST'])
+def trigger_update():
+    update_glucose_data()
+    return jsonify({"status": "success"}), 200
 
 if __name__ == '__main__':
-    # Exécuter le planificateur dans un thread séparé
-    scheduler_thread = threading.Thread(target=run_schedule)
-    scheduler_thread.start()
-    
-    # Exécuter l'application Flask
+    logging.info("Starting the Flask app and scheduling updates.")
+    schedule_updates()  # Commencer la mise à jour périodique des données de glucose
     app.run(host='0.0.0.0', port=5000)
