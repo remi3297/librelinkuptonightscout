@@ -48,7 +48,7 @@ def get_librelinkup_session():
             logging.info(f"Response Status Code: {response.getcode()}")
             logging.info(f"Response Text: {response_data}")
             response_json = json.loads(response_data)
-            return response_json['data']['authTicket']
+            return response_json['data']['authTicket']['token']
     except Exception as e:
         logging.error(f"Error during LibreLinkUp session retrieval: {e}")
         raise
@@ -78,6 +78,11 @@ def get_glucose_data(session_token):
             logging.info(f"Response Text: {response_data}")
             response_json = json.loads(response_data)
             return response_json['data']
+    except urllib.error.HTTPError as e:
+        logging.error(f"HTTP error occurred: {e.code} - {e.reason}")
+        if e.code == 401:
+            logging.error("Unauthorized access - possible issues with session token.")
+        raise
     except Exception as e:
         logging.error(f"Error during glucose data retrieval: {e}")
         raise
@@ -115,6 +120,7 @@ def send_to_nightscout(glucose_data):
 if __name__ == '__main__':
     try:
         session_token = get_librelinkup_session()
+        logging.info(f"Session token received: {session_token}")
         glucose_data = get_glucose_data(session_token)
         send_to_nightscout(glucose_data)
     except requests.exceptions.HTTPError as err:
