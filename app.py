@@ -108,6 +108,7 @@ def update_glucose_data():
     logging.info("Starting glucose data update")
     try:
         session_token = get_librelinkup_session()
+        logging.info(f"Session token obtained: {session_token}")
         glucose_data = get_glucose_data(session_token)
         logging.info(f"Glucose data updated successfully: {glucose_data}")
     except Exception as e:
@@ -127,10 +128,12 @@ def trigger_update():
     return jsonify({"status": "success"}), 200
 
 def schedule_glucose_updates():
+    logging.info("Starting the schedule for glucose updates")
     schedule.every(1).minute.do(update_glucose_data)
 
     while True:
         schedule.run_pending()
+        logging.info("Schedule running, waiting for tasks...")
         time.sleep(1)
 
 if __name__ == '__main__':
@@ -140,5 +143,6 @@ if __name__ == '__main__':
     update_thread = Thread(target=schedule_glucose_updates)
     update_thread.daemon = True
     update_thread.start()
+    logging.info("Scheduled updates thread started.")
     
     app.run(host='0.0.0.0', port=5000)
