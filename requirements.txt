@@ -1,6 +1,6 @@
 requests
 urllib3
 python-dotenv
-flask
+Flask
 gunicorn
 schedule
