@@ -118,7 +118,10 @@ def schedule_updates():
 @app.route('/get_glucose', methods=['GET'])
 def get_glucose():
     global glucose_data
-    return jsonify(glucose_data), 200
+    if glucose_data and 'glucoseMeasurement' in glucose_data[0]:
+        glucose_value = glucose_data[0]['glucoseMeasurement']['Value']
+        return jsonify({"glucose_value": glucose_value}), 200
+    return jsonify({"error": "No glucose data available"}), 404
 
 @app.route('/update_glucose', methods=['POST'])
 def trigger_update():
