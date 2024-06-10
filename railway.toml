@@ -2,8 +2,7 @@
 command = "pip install -r requirements.txt"
 
 [start]
-command = "python app.py"
-"curl -X POST https://librelinkuptonightscout-production.up.railway.app/update_glucose"
+command = "python app.py","curl -X POST https://librelinkuptonightscout-production.up.railway.app/update_glucose"
 
 #[deploy]
 # Specifier une tâche cron pour exécuter le script chaque minute
