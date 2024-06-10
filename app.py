@@ -2,7 +2,6 @@ from flask import Flask, jsonify
 import requests
 import json
 import os
-import datetime
 import urllib.request
 from dotenv import load_dotenv
 import logging
