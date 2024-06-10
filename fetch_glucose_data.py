@@ -5,6 +5,7 @@ import datetime
 import urllib.request
 from dotenv import load_dotenv
 import logging
+import hashlib
 
 # Configurer les logs
 logging.basicConfig(level=logging.DEBUG)
@@ -20,6 +21,9 @@ NIGHTSCOUT_URL = os.getenv('NIGHTSCOUT_URL')
 PROXY_URL = os.getenv('PROXY_URL')
 PROXY_USERNAME = os.getenv('PROXY_USERNAME')
 PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
+
+# Générer le hash SHA1 de l'API secret
+hashed_api_secret = hashlib.sha1(NIGHTSCOUT_API_SECRET.encode()).hexdigest()
 
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
@@ -101,7 +105,7 @@ def get_glucose_data(session_token):
 def send_to_nightscout(glucose_data):
     entries_url = f"{NIGHTSCOUT_URL}/api/v1/entries"
     headers = {
-        'api-secret': NIGHTSCOUT_API_SECRET,  # Assurez-vous que la clé est en minuscules
+        'api-secret': hashed_api_secret,  # Utilisez le hash SHA1
         'Content-Type': 'application/json'
     }
     for connection in glucose_data:
