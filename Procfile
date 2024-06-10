@@ -1,1 +1,1 @@
-worker: python fetch_glucose_data.py
+worker: python app.py
