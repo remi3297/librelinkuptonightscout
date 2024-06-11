@@ -2,9 +2,8 @@ from flask import Flask, jsonify
 import requests
 import json
 import os
-import urllib.request
-from dotenv import load_dotenv
 import logging
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
@@ -90,7 +89,16 @@ def get_glucose_data(session_token):
             logging.info(f"Response Status Code: {response.getcode()}")
             logging.info(f"Response Text: {response_data}")
             response_json = json.loads(response_data)
-            return response_json['data']
+            if 'data' in response_json and response_json['data']:
+                glucose_measurements = response_json['data'][0]['glucoseMeasurement'] if 'glucoseMeasurement' in response_json['data'][0] else None
+                if glucose_measurements:
+                    return response_json['data']
+                else:
+                    logging.warning("No glucose measurements found in the response.")
+                    return None
+            else:
+                logging.warning("No data found in the response.")
+                return None
     except urllib.error.HTTPError as e:
         logging.error(f"HTTP error occurred: {e.code} - {e.reason}")
         if e.code == 401:
@@ -105,8 +113,12 @@ def update_glucose_data():
     logging.info("Starting glucose data update")
     try:
         session_token = get_librelinkup_session()
-        glucose_data = get_glucose_data(session_token)
-        logging.info(f"Glucose data updated successfully: {glucose_data}")
+        new_data = get_glucose_data(session_token)
+        if new_data:
+            glucose_data = new_data
+            logging.info(f"Glucose data updated successfully: {glucose_data}")
+        else:
+            logging.warning("No new glucose data retrieved.")
     except Exception as e:
         logging.error(f"Error during glucose data update: {e}")
 
