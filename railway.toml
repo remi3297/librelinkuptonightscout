@@ -1,9 +1,0 @@
-[build]
-  builder = "Nixpacks"
-
-[deploy]
-  [deploy.services]
-    web = { start = "gunicorn --bind 0.0.0.0:5000 app:app" }
-
-  [[plugins]]
-    name = "postgresql"  # Si vous avez besoin d'une base de données PostgreSQL
