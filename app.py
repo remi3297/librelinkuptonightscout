@@ -1,12 +1,11 @@
 from flask import Flask, jsonify
-import requests
 import json
 import os
-import datetime
 import urllib.request
 from dotenv import load_dotenv
 import logging
 import threading
+import gzip
 
 app = Flask(__name__)
 
@@ -25,6 +24,12 @@ PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
 
 glucose_data = {}
 
+def safe_decode_gzip(response):
+    if response.info().get('Content-Encoding') == 'gzip':
+        return gzip.decompress(response.read()).decode('utf-8')
+    else:
+        return response.read().decode('utf-8')
+
 def get_librelinkup_session():
     login_url = 'https://api-eu.libreview.io/llu/auth/login'  # Utilisation de l'API européenne
     payload = {
@@ -36,6 +41,7 @@ def get_librelinkup_session():
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.2.1',  # Version spécifique du tutoriel
         'product': 'llu.ios',
+        'accept-encoding': 'gzip',
         'cache-control': 'no-cache',
         'connection': 'Keep-Alive'
     }
@@ -50,7 +56,7 @@ def get_librelinkup_session():
     try:
         req = urllib.request.Request(login_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
         with urllib.request.urlopen(req) as response:
-            response_data = response.read().decode('utf-8')
+            response_data = safe_decode_gzip(response)
             logging.info(f"Response Status Code: {response.getcode()}")
             logging.info(f"Response Text: {response_data}")
             response_json = json.loads(response_data)
@@ -81,7 +87,7 @@ def get_glucose_data(session_token):
     try:
         req = urllib.request.Request(data_url, headers=headers)
         with urllib.request.urlopen(req) as response:
-            response_data = response.read().decode('utf-8')
+            response_data = safe_decode_gzip(response)
             logging.info(f"Response Status Code: {response.getcode()}")
             logging.info(f"Response Text: {response_data}")
             response_json = json.loads(response_data)
