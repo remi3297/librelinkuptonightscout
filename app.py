@@ -53,12 +53,9 @@ def get_librelinkup_session():
         if not auth_data or 'authTicket' not in auth_data:
             raise ValueError("Region login response does not contain 'authTicket'")
     
-    return auth_data['authTicket']
+    return auth_data['authTicket']['token']
 
-def get_glucose_data():
-    global session_token, glucose_data
-    if session_token is None:
-        session_token = get_librelinkup_session()
+def get_glucose_data(session_token):
     data_url = 'https://api.libreview.io/llu/connections'
     headers = {
         'authorization': f'Bearer {session_token}',
@@ -71,13 +68,14 @@ def get_glucose_data():
     print(f"Glucose Data Response Status Code: {response.status_code}")
     print(f"Glucose Data Response Text: {response.text}")
     response.raise_for_status()
-    glucose_data = response.json().get('data')
-    if not glucose_data:
-        raise ValueError("No glucose data found in the response")
+    return response.json()['data']
 
 def fetch_glucose_data():
+    global session_token, glucose_data
     try:
-        get_glucose_data()
+        if session_token is None:
+            session_token = get_librelinkup_session()
+        glucose_data = get_glucose_data(session_token)
         print("Glucose data updated.")
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
