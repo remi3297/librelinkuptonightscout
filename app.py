@@ -37,9 +37,22 @@ def get_librelinkup_session():
     print(f"Login Response Status Code: {response.status_code}")
     print(f"Login Response Text: {response.text}")
     response.raise_for_status()
+    
     auth_data = response.json().get('data')
-    if not auth_data or 'authTicket' not in auth_data:
-        raise ValueError("Login response does not contain 'authTicket'")
+    if not auth_data:
+        raise ValueError("Login response does not contain valid 'data'")
+    
+    if auth_data.get('redirect'):
+        region = auth_data['region']
+        region_url = f"https://api-{region}.libreview.io/llu/auth/login"
+        response = requests.post(region_url, data=json.dumps(payload), headers=headers, proxies=proxies)
+        print(f"Region Login Response Status Code: {response.status_code}")
+        print(f"Region Login Response Text: {response.text}")
+        response.raise_for_status()
+        auth_data = response.json().get('data')
+        if not auth_data or 'authTicket' not in auth_data:
+            raise ValueError("Region login response does not contain 'authTicket'")
+    
     return auth_data['authTicket']
 
 def get_glucose_data():
