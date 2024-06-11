@@ -29,7 +29,7 @@ def get_librelinkup_session():
     }
     headers = {
         'Content-Type': 'application/json',
-        'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
+        'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; fr_FR)',
         'version': '4.7.0',
         'product': 'llu.ios'
     }
@@ -60,7 +60,7 @@ def get_glucose_data(session_token):
     headers = {
         'authorization': f'Bearer {session_token}',
         'Content-Type': 'application/json',
-        'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
+        'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; fr_FR)',
         'version': '4.7.0',
         'product': 'llu.ios'
     }
