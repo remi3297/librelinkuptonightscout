@@ -1,27 +1,25 @@
 from flask import Flask, jsonify
+from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 import json
 import os
-import urllib.request
-from dotenv import load_dotenv
-import logging
 
 app = Flask(__name__)
 
-# Configurer les logs
-logging.basicConfig(level=logging.DEBUG)
-
-# Charger les variables d'environnement depuis un fichier .env si présent
-load_dotenv()
-
-# Définir les variables d'environnement
 LIBRELINKUP_EMAIL = os.getenv('LIBRELINKUP_EMAIL')
 LIBRELINKUP_PASSWORD = os.getenv('LIBRELINKUP_PASSWORD')
 PROXY_URL = os.getenv('PROXY_URL')
 PROXY_USERNAME = os.getenv('PROXY_USERNAME')
 PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
 
-glucose_data = {}
+session_token = None
+glucose_data = None
+
+proxy_auth = f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}"
+proxies = {
+    "http": proxy_auth,
+    "https": proxy_auth
+}
 
 def get_librelinkup_session():
     login_url = 'https://api.libreview.io/llu/auth/login'
@@ -35,38 +33,14 @@ def get_librelinkup_session():
         'version': '4.7.0',
         'product': 'llu.ios'
     }
-    
-    proxy_handler = urllib.request.ProxyHandler({
-        'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}',
-        'https': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'
-    })
-    opener = urllib.request.build_opener(proxy_handler)
-    urllib.request.install_opener(opener)
-    
-    try:
-        req = urllib.request.Request(login_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
-        with urllib.request.urlopen(req) as response:
-            response_data = response.read().decode('utf-8')
-            logging.info(f"Response Status Code: {response.getcode()}")
-            logging.info(f"Response Text: {response_data}")
-            response_json = json.loads(response_data)
-            
-            if 'redirect' in response_json['data'] and response_json['data']['redirect']:
-                region = response_json['data']['region']
-                login_url = f'https://api-{region}.libreview.io/llu/auth/login'
-                req = urllib.request.Request(login_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
-                with urllib.request.urlopen(req) as response:
-                    response_data = response.read().decode('utf-8')
-                    logging.info(f"Response Status Code after redirect: {response.getcode()}")
-                    logging.info(f"Response Text after redirect: {response_data}")
-                    response_json = json.loads(response_data)
+    response = requests.post(login_url, data=json.dumps(payload), headers=headers, proxies=proxies)
+    response.raise_for_status()
+    return response.json()['data']['authTicket']
 
-            return response_json['data']['authTicket']['token']
-    except Exception as e:
-        logging.error(f"Error during LibreLinkUp session retrieval: {e}")
-        raise
-
-def get_glucose_data(session_token):
+def get_glucose_data():
+    global session_token, glucose_data
+    if session_token is None:
+        session_token = get_librelinkup_session()
     data_url = 'https://api.libreview.io/llu/connections'
     headers = {
         'authorization': f'Bearer {session_token}',
@@ -75,64 +49,27 @@ def get_glucose_data(session_token):
         'version': '4.7.0',
         'product': 'llu.ios'
     }
-    
-    proxy_handler = urllib.request.ProxyHandler({
-        'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}',
-        'https': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}'
-    })
-    opener = urllib.request.build_opener(proxy_handler)
-    urllib.request.install_opener(opener)
-    
+    response = requests.get(data_url, headers=headers, proxies=proxies)
+    response.raise_for_status()
+    glucose_data = response.json()['data']
+
+def fetch_glucose_data():
     try:
-        req = urllib.request.Request(data_url, headers=headers)
-        with urllib.request.urlopen(req) as response:
-            response_data = response.read().decode('utf-8')
-            logging.info(f"Response Status Code: {response.getcode()}")
-            logging.info(f"Response Text: {response_data}")
-            response_json = json.loads(response_data)
-            return response_json['data']
-    except urllib.error.HTTPError as e:
-        logging.error(f"HTTP error occurred: {e.code} - {e.reason}")
-        if e.code == 401:
-            logging.error("Unauthorized access - possible issues with session token.")
-        raise
-    except Exception as e:
-        logging.error(f"Error during glucose data retrieval: {e}")
-        raise
+        get_glucose_data()
+        print("Glucose data updated.")
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP error occurred: {err}")
+    except Exception as err:
+        print(f"An error occurred: {err}")
 
-def update_glucose_data():
-    global glucose_data
-    logging.info("Starting glucose data update")
-    try:
-        session_token = get_librelinkup_session()
-        connections = get_glucose_data(session_token)
-        
-        for connection in connections:
-            logging.info(f"Connection ID: {connection['id']}")
-            if 'glucoseMeasurement' in connection:
-                glucose_measurement = connection['glucoseMeasurement']
-                glucose_data = {
-                    'timestamp': glucose_measurement['Timestamp'],
-                    'value': glucose_measurement['Value']
-                }
-                logging.info(f"Date: {glucose_measurement['Timestamp']}, Glucose Value: {glucose_measurement['Value']}")
-            else:
-                logging.warning("No glucose measurement data available.")
-    except Exception as e:
-        logging.error(f"Error during glucose data update: {e}")
+scheduler = BackgroundScheduler()
+scheduler.add_job(fetch_glucose_data, 'interval', minutes=1)
+scheduler.start()
 
-@app.route('/get_glucose', methods=['GET'])
-def get_glucose():
-    global glucose_data
-    if glucose_data:
-        return jsonify(glucose_data), 200
-    return jsonify({"error": "No glucose data available"}), 404
-
-@app.route('/update_glucose', methods=['POST'])
-def trigger_update():
-    update_glucose_data()
-    return jsonify({"status": "success"}), 200
+@app.route('/glucose', methods=['GET'])
+def glucose():
+    return jsonify(glucose_data)
 
 if __name__ == '__main__':
-    logging.info("Starting the Flask app.")
-    app.run(host='0.0.0.0', port=5000)
+    fetch_glucose_data()  # Initial fetch
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
