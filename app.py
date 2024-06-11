@@ -15,6 +15,7 @@ PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
 session_token = None
 glucose_data = None
 
+# Correct proxy handling
 proxy_auth = f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_URL}"
 proxies = {
     "http": proxy_auth,
@@ -29,7 +30,7 @@ def get_librelinkup_session():
     }
     headers = {
         'Content-Type': 'application/json',
-        'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; fr_FR)',
+        'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
         'product': 'llu.ios'
     }
@@ -60,7 +61,7 @@ def get_glucose_data(session_token):
     headers = {
         'authorization': f'Bearer {session_token}',
         'Content-Type': 'application/json',
-        'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; fr_FR)',
+        'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
         'product': 'llu.ios'
     }
