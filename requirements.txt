@@ -1,6 +1,5 @@
 requests
 urllib3
-urllib
 python-dotenv
 Flask
 gunicorn
