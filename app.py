@@ -31,7 +31,7 @@ def safe_decode_gzip(response):
         return response.read().decode('utf-8')
 
 def get_librelinkup_session():
-    login_url = 'https://api-eu.libreview.io/llu/auth/login'  # Utilisation de l'API européenne
+    login_url = 'https://api-eu.libreview.io/llu/auth/login'  # Initial API URL
     payload = {
         'email': LIBRELINKUP_EMAIL,
         'password': LIBRELINKUP_PASSWORD
@@ -39,7 +39,7 @@ def get_librelinkup_session():
     headers = {
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
-        'version': '4.2.1',  # Version spécifique du tutoriel
+        'version': '4.2.1',
         'product': 'llu.ios',
         'accept-encoding': 'gzip',
         'cache-control': 'no-cache',
@@ -60,7 +60,27 @@ def get_librelinkup_session():
             logging.info(f"Response Status Code: {response.getcode()}")
             logging.info(f"Response Text: {response_data}")
             response_json = json.loads(response_data)
-            return response_json['data']['authTicket']['token']
+            
+            # Handle redirection
+            if response_json.get('data', {}).get('redirect', False):
+                region = response_json['data']['region']
+                new_login_url = f'https://api-{region}.libreview.io/llu/auth/login'
+                req = urllib.request.Request(new_login_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
+                with urllib.request.urlopen(req) as new_response:
+                    new_response_data = safe_decode_gzip(new_response)
+                    new_response_json = json.loads(new_response_data)
+                    # Make sure 'authTicket' exists before trying to access it
+                    if 'authTicket' in new_response_json.get('data', {}):
+                        return new_response_json['data']['authTicket']['token']
+                    else:
+                        logging.error("Auth ticket not found in the redirected response.")
+                        return None
+            else:
+                if 'authTicket' in response_json.get('data', {}):
+                    return response_json['data']['authTicket']['token']
+                else:
+                    logging.error("Auth ticket not found in the response.")
+                    return None
     except Exception as e:
         logging.error(f"Error during LibreLinkUp session retrieval: {e}")
         raise
