@@ -68,7 +68,19 @@ def get_glucose_data(session_token):
     print(f"Glucose Data Response Status Code: {response.status_code}")
     print(f"Glucose Data Response Text: {response.text}")
     response.raise_for_status()
-    return response.json()['data']
+    connections = response.json().get('data')
+    glucose_data = []
+    for connection in connections:
+        if 'glucoseMeasurement' in connection:
+            glucose_measurement = connection['glucoseMeasurement']
+            glucose_data.append({
+                'Connection ID': connection['id'],
+                'Timestamp': glucose_measurement['Timestamp'],
+                'Value': glucose_measurement['Value']
+            })
+        else:
+            print(f"No glucose measurement data available for connection ID: {connection['id']}")
+    return glucose_data
 
 def fetch_glucose_data():
     global session_token, glucose_data
