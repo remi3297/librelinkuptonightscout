@@ -26,7 +26,7 @@ PROXY_PASSWORD = os.getenv('PROXY_PASSWORD')
 glucose_data = {}
 
 def get_librelinkup_session():
-    login_url = 'https://api.libreview.io/llu/auth/login'
+    login_url = 'https://api-eu.libreview.io/llu/auth/login'  # Utilisation de l'API européenne
     payload = {
         'email': LIBRELINKUP_EMAIL,
         'password': LIBRELINKUP_PASSWORD
@@ -34,8 +34,10 @@ def get_librelinkup_session():
     headers = {
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
-        'version': '4.7.0',
-        'product': 'llu.ios'
+        'version': '4.2.1',  # Version spécifique du tutoriel
+        'product': 'llu.ios',
+        'cache-control': 'no-cache',
+        'connection': 'Keep-Alive'
     }
     
     proxy_handler = urllib.request.ProxyHandler({
@@ -52,30 +54,21 @@ def get_librelinkup_session():
             logging.info(f"Response Status Code: {response.getcode()}")
             logging.info(f"Response Text: {response_data}")
             response_json = json.loads(response_data)
-            
-            if 'redirect' in response_json['data'] and response_json['data']['redirect']:
-                region = response_json['data']['region']
-                login_url = f'https://api-{region}.libreview.io/llu/auth/login'
-                req = urllib.request.Request(login_url, data=json.dumps(payload).encode('utf-8'), headers=headers)
-                with urllib.request.urlopen(req) as response:
-                    response_data = response.read().decode('utf-8')
-                    logging.info(f"Response Status Code after redirect: {response.getcode()}")
-                    logging.info(f"Response Text after redirect: {response_data}")
-                    response_json = json.loads(response_data)
-
             return response_json['data']['authTicket']['token']
     except Exception as e:
         logging.error(f"Error during LibreLinkUp session retrieval: {e}")
         raise
 
 def get_glucose_data(session_token):
-    data_url = 'https://api.libreview.io/llu/connections'
+    data_url = 'https://api-eu.libreview.io/llu/connections'  # Utilisation de l'API européenne
     headers = {
         'authorization': f'Bearer {session_token}',
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
-        'version': '4.7.0',
-        'product': 'llu.ios'
+        'version': '4.2.1',  # Version spécifique du tutoriel
+        'accept-encoding': 'gzip',
+        'cache-control': 'no-cache',
+        'connection': 'Keep-Alive'
     }
     
     proxy_handler = urllib.request.ProxyHandler({
