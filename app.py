@@ -5,7 +5,6 @@ import os
 import urllib.request
 from dotenv import load_dotenv
 import logging
-from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 
@@ -126,20 +125,4 @@ def trigger_update():
 
 if __name__ == '__main__':
     logging.info("Starting the Flask app.")
-    
-    # Planifier les mises à jour de glucose avec APScheduler
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(
-        func=update_glucose_data,
-        trigger='interval',
-        minutes=1,
-        id='update_glucose_data',
-        name='Update glucose data every minute',
-        replace_existing=True)
-    scheduler.start()
-    logging.info("Scheduled updates started.")
-    
-    try:
-        app.run(host='0.0.0.0', port=5000)
-    except (KeyboardInterrupt, SystemExit):
-        scheduler.shutdown()
+    app.run(host='0.0.0.0', port=5000)
