@@ -61,7 +61,11 @@ def get_patient_connections(session_token):
     try:
         response = requests.get(connections_url, headers=headers)
         response.raise_for_status()
-        return response.json()['data']
+        connections = response.json().get('data', [])
+        if not connections:
+            logging.warning("No patient connections found.")
+            return None
+        return connections
     except Exception as e:
         logging.error(f"Error during patient connections retrieval: {e}")
         raise
@@ -92,7 +96,7 @@ def update_glucose_data():
         if connections:
             patient_id = connections[0]['patientId']
             new_data = get_glucose_data(session_token, patient_id)
-            if new_data:
+            if new_data and 'graphData' in new_data:
                 glucose_data = new_data
                 logging.info(f"Glucose data updated successfully: {glucose_data}")
             else:
