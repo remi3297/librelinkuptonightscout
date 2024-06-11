@@ -34,8 +34,13 @@ def get_librelinkup_session():
         'product': 'llu.ios'
     }
     response = requests.post(login_url, data=json.dumps(payload), headers=headers, proxies=proxies)
+    print(f"Login Response Status Code: {response.status_code}")
+    print(f"Login Response Text: {response.text}")
     response.raise_for_status()
-    return response.json()['data']['authTicket']
+    auth_data = response.json().get('data')
+    if not auth_data or 'authTicket' not in auth_data:
+        raise ValueError("Login response does not contain 'authTicket'")
+    return auth_data['authTicket']
 
 def get_glucose_data():
     global session_token, glucose_data
@@ -50,8 +55,12 @@ def get_glucose_data():
         'product': 'llu.ios'
     }
     response = requests.get(data_url, headers=headers, proxies=proxies)
+    print(f"Glucose Data Response Status Code: {response.status_code}")
+    print(f"Glucose Data Response Text: {response.text}")
     response.raise_for_status()
-    glucose_data = response.json()['data']
+    glucose_data = response.json().get('data')
+    if not glucose_data:
+        raise ValueError("No glucose data found in the response")
 
 def fetch_glucose_data():
     try:
@@ -71,5 +80,8 @@ def glucose():
     return jsonify(glucose_data)
 
 if __name__ == '__main__':
-    fetch_glucose_data()  # Initial fetch
+    try:
+        fetch_glucose_data()  # Initial fetch
+    except Exception as e:
+        print(f"An error occurred during initial fetch: {e}")
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
