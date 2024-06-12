@@ -107,4 +107,21 @@ async function fetchGlucoseData() {
       });
 
       latestGlucoseData = glucoseData.data.connection.glucoseMeasurement;
-      console.log('Latest Glucose Data:', latestGlucos
+      console.log('Latest Glucose Data:', latestGlucoseData);
+    } else {
+      console.log('Aucune connexion trouvée.');
+    }
+  } catch (error) {
+    console.error('Erreur lors de la récupération des données de glycémie:', error.response ? error.response.data : error);
+  }
+}
+
+app.get('/glucose', (req, res) => {
+  res.json(latestGlucoseData);
+});
+
+cron.schedule('* * * * *', fetchGlucoseData);
+
+app.listen(port, () => {
+  console.log(`Serveur en écoute sur le port ${port}`);
+});
