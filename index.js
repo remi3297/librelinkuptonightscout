@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const cron = require('node-cron');
+const zlib = require('zlib');
 
 require('dotenv').config();
 
@@ -15,6 +16,16 @@ async function fetchGlucoseData() {
     const loginResponse = await axios.post('https://api.libreview.io/llu/auth/login', {
       email: process.env.LIBRELINKUP_EMAIL,
       password: process.env.LIBRELINKUP_PASSWORD,
+    }, {
+      headers: {
+        'accept-encoding': 'gzip',
+        'cache-control': 'no-cache',
+        'connection': 'Keep-Alive',
+        'content-type': 'application/json',
+        'product': 'llu.android',
+        'version': '4.2.1',
+      },
+      decompress: false,
     });
 
     const token = loginResponse.data.token;
@@ -24,10 +35,27 @@ async function fetchGlucoseData() {
     const connectionsResponse = await axios.get('https://api.libreview.io/llu/connections', {
       headers: {
         Authorization: `Bearer ${token}`,
+        'accept-encoding': 'gzip',
+        'cache-control': 'no-cache',
+        'connection': 'Keep-Alive',
+        'content-type': 'application/json',
+        'product': 'llu.android',
+        'version': '4.2.1',
       },
+      decompress: false,
     });
 
-    const connections = connectionsResponse.data;
+    const connectionsData = await new Promise((resolve, reject) => {
+      zlib.gunzip(connectionsResponse.data, (err, decompressedData) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(JSON.parse(decompressedData.toString()));
+        }
+      });
+    });
+
+    const connections = connectionsData.connections;
     console.log('Connections:', connections);
 
     if (connections.length > 0) {
@@ -37,16 +65,33 @@ async function fetchGlucoseData() {
       const glucoseResponse = await axios.get(`https://api.libreview.io/llu/connections/${patientId}/graph`, {
         headers: {
           Authorization: `Bearer ${token}`,
+          'accept-encoding': 'gzip',
+          'cache-control': 'no-cache',
+          'connection': 'Keep-Alive',
+          'content-type': 'application/json',
+          'product': 'llu.android',
+          'version': '4.2.1',
         },
+        decompress: false,
       });
 
-      latestGlucoseData = glucoseResponse.data;
+      const glucoseData = await new Promise((resolve, reject) => {
+        zlib.gunzip(glucoseResponse.data, (err, decompressedData) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(JSON.parse(decompressedData.toString()));
+          }
+        });
+      });
+
+      latestGlucoseData = glucoseData;
       console.log('Latest Glucose Data:', latestGlucoseData);
     } else {
       console.log('Aucune connexion trouvée.');
     }
   } catch (error) {
-    console.error('Erreur lors de la récupération des données de glycémie:', error.response.data);
+    console.error('Erreur lors de la récupération des données de glycémie:', error.response ? error.response.data : error);
   }
 }
 
