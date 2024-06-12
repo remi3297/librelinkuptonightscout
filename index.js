@@ -22,7 +22,7 @@ async function authenticate() {
         'connection': 'Keep-Alive',
         'content-type': 'application/json',
         'product': 'llu.ios',
-        'version': '4.2.1',
+        'version': '4.7.0', // Mise à jour de la version
       },
       maxRedirects: 0, // Empêche Axios de suivre automatiquement les redirections
     });
@@ -44,7 +44,7 @@ async function authenticate() {
           'connection': 'Keep-Alive',
           'content-type': 'application/json',
           'product': 'llu.ios',
-          'version': '4.2.1',
+          'version': '4.7.0', // Mise à jour de la version
         },
       });
 
@@ -81,7 +81,7 @@ async function fetchGlucoseData() {
         'connection': 'Keep-Alive',
         'content-type': 'application/json',
         'product': 'llu.ios',
-        'version': '4.2.1',
+        'version': '4.7.0', // Mise à jour de la version
       },
     });
 
@@ -101,7 +101,7 @@ async function fetchGlucoseData() {
           'connection': 'Keep-Alive',
           'content-type': 'application/json',
           'product': 'llu.ios',
-          'version': '4.2.1',
+          'version': '4.7.0', // Mise à jour de la version
         },
       });
 
