@@ -68,7 +68,9 @@ async function fetchGlucoseData() {
       await authenticate();
     }
 
-    const connectionsResponse = await axios.get('https://api.libreview.io/llu/connections', {
+    const patientId = 'YOUR_PATIENT_ID'; // Remplacez par l'identifiant du patient
+
+    const glucoseResponse = await axios.get(`https://api.libreview.io/llu/connections/${patientId}/graph`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
         'Content-Type': 'application/json',
@@ -78,24 +80,14 @@ async function fetchGlucoseData() {
       },
     });
 
-    const connectionsData = connectionsResponse.data;
-    const connections = connectionsData.data;
-    console.log('Connections:', connections);
+    const glucoseData = glucoseResponse.data;
+    console.log('Glucose Data:', glucoseData);
 
-    if (connections.length === 0) {
-      console.log('Aucune connexion trouvée. Vérifiez les paramètres de partage de données dans votre compte LibreLinkUp.');
-      return;
-    }
-
-    for (const connection of connections) {
-      console.log(`Connection ID: ${connection.id}`);
-
-      if (connection.glucoseMeasurement) {
-        latestGlucoseData = connection.glucoseMeasurement;
-        console.log(`Date: ${latestGlucoseData.Timestamp}, Glucose Value: ${latestGlucoseData.Value}`);
-      } else {
-        console.log('No glucose measurement data available.');
-      }
+    if (glucoseData.data && glucoseData.data.connection && glucoseData.data.connection.glucoseMeasurement) {
+      latestGlucoseData = glucoseData.data.connection.glucoseMeasurement;
+      console.log(`Date: ${latestGlucoseData.Timestamp}, Glucose Value: ${latestGlucoseData.Value}`);
+    } else {
+      console.log('No glucose measurement data available.');
     }
   } catch (error) {
     console.error('Erreur lors de la récupération des données de glycémie:', error.response ? error.response.data : error);
