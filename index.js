@@ -20,16 +20,19 @@ async function authenticate() {
         'accept-encoding': 'gzip',
         'cache-control': 'no-cache',
         'connection': 'Keep-Alive',
-        '        'product': 'llu.android',
+        'content-type': 'application/json',
+        'product': 'llu.ios',
         'version': '4.2.1',
       },
     });
 
-    const loginData = loginResponse.data;    console.log('Login Response:', loginData); // Ajoutez cette ligne pour afficher la réponse de l'API
+    const loginData = loginResponse.data;
+    console.log('Login Response:', loginData);
 
     if (loginData.data && loginData.data.authTicket && loginData.data.authTicket.token) {
       authToken = loginData.data.authTicket.token;
-      console.log('Access Token:', authTo    } else {
+      console.log('Access Token:', authToken);
+    } else {
       throw new Error('Réponse d\'authentification inattendue');
     }
   } catch (error) {
@@ -52,7 +55,7 @@ async function fetchGlucoseData() {
         'cache-control': 'no-cache',
         'connection': 'Keep-Alive',
         'content-type': 'application/json',
-        'product': 'llu.android',
+        'product': 'llu.ios',
         'version': '4.2.1',
       },
     });
@@ -72,7 +75,7 @@ async function fetchGlucoseData() {
           'cache-control': 'no-cache',
           'connection': 'Keep-Alive',
           'content-type': 'application/json',
-          'product': 'llu.android',
+          'product': 'llu.ios',
           'version': '4.2.1',
         },
       });
