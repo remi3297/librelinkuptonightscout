@@ -11,22 +11,42 @@ let latestGlucoseData = null;
 
 async function fetchGlucoseData() {
   try {
-    const response = await axios.post('https://api-eu.libreview.io/auth/login', {
+    // Étape 1 : Authentification
+    const loginResponse = await axios.post('https://api.libreview.io/llu/auth/login', {
       email: process.env.LIBRELINKUP_EMAIL,
       password: process.env.LIBRELINKUP_PASSWORD,
     });
 
-    const token = response.data.access_token;
+    const token = loginResponse.data.token;
+    console.log('Access Token:', token);
 
-    const glucoseResponse = await axios.get('https://api-eu.libreview.io/glucose/latest', {
+    // Étape 2 : Récupération des connexions
+    const connectionsResponse = await axios.get('https://api.libreview.io/llu/connections', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    latestGlucoseData = glucoseResponse.data;
+    const connections = connectionsResponse.data;
+    console.log('Connections:', connections);
+
+    if (connections.length > 0) {
+      const patientId = connections[0].patientId;
+
+      // Étape 3 : Récupération des données de glycémie
+      const glucoseResponse = await axios.get(`https://api.libreview.io/llu/connections/${patientId}/graph`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      latestGlucoseData = glucoseResponse.data;
+      console.log('Latest Glucose Data:', latestGlucoseData);
+    } else {
+      console.log('Aucune connexion trouvée.');
+    }
   } catch (error) {
-    console.error('Erreur lors de la récupération des données de glycémie:', error);
+    console.error('Erreur lors de la récupération des données de glycémie:', error.response.data);
   }
 }
 
