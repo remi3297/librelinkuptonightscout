@@ -12,7 +12,7 @@ let authToken = null;
 
 async function authenticate() {
   try {
-    const loginResponse = await axios.post('https://api.libreview.io/llu/auth/login', {
+    const loginResponse = await axios.post('https://api-fr.libreview.io/llu/auth/login', {
       email: process.env.LIBRELINKUP_EMAIL,
       password: process.env.LIBRELINKUP_PASSWORD,
     }, {
@@ -45,7 +45,7 @@ async function fetchGlucoseData() {
       await authenticate();
     }
 
-    const connectionsResponse = await axios.get('https://api.libreview.io/llu/connections', {
+    const connectionsResponse = await axios.get('https://api-fr.libreview.io/llu/connections', {
       headers: {
         Authorization: `Bearer ${authToken}`,
         'Content-Type': 'application/json',
