@@ -88,7 +88,11 @@ async function fetchGlucoseData() {
 }
 
 app.get('/glucose', (req, res) => {
-  res.json(latestGlucoseData);
+  if (latestGlucoseData && latestGlucoseData.Value) {
+    res.json({ value: latestGlucoseData.Value });
+  } else {
+    res.status(404).json({ error: 'No glucose data available' });
+  }
 });
 
 cron.schedule('* * * * *', fetchGlucoseData);
