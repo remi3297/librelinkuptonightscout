@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const cron = require('node-cron');
-
+const HttpsProxyAgent = require('https-proxy-agent');
 require('dotenv').config();
 
 const app = express();
@@ -9,6 +9,10 @@ const port = process.env.PORT || 3000;
 
 let latestGlucoseData = null;
 let authToken = null;
+
+// Configuration du proxy
+const proxyUrl = `http://${process.env.PROXY_USERNAME}:${process.env.PROXY_PASSWORD}@${process.env.PROXY_URL}`;
+const agent = new HttpsProxyAgent(proxyUrl);
 
 async function authenticate() {
   try {
@@ -21,7 +25,8 @@ async function authenticate() {
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
         'product': 'llu.ios',
-      }
+      },
+      httpsAgent: agent // Utilisation de l'agent proxy
     });
 
     const loginData = loginResponse.data;
@@ -53,7 +58,10 @@ async function fetchGlucoseData() {
         'version': '4.7.0',
         'product': 'llu.ios',
       },
+      httpsAgent: agent // Utilisation de l'agent proxy
     });
+
+    console.log('Connections Response:', connectionsResponse.data);  // Log complet des données reçues
 
     const connectionsData = connectionsResponse.data;
     const connections = connectionsData.data;
