@@ -68,72 +68,34 @@ async function fetchGlucoseData() {
       await authenticate();
     }
 
-    const redirectResponse = await axios.post('https://api.libreview.io/llu/auth/login', {
-      email: process.env.LIBRELINKUP_EMAIL,
-      password: process.env.LIBRELINKUP_PASSWORD,
-    }, {
+    const connectionsResponse = await axios.get('https://api.libreview.io/llu/connections', {
       headers: {
+        Authorization: `Bearer ${authToken}`,
         'Content-Type': 'application/json',
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
         'product': 'llu.ios',
       },
-      maxRedirects: 0,
     });
 
-    const redirectData = redirectResponse.data;
-    console.log('Redirect Response:', redirectData);
+    const connectionsData = connectionsResponse.data;
+    const connections = connectionsData.data;
+    console.log('Connections:', connections);
 
-    if (redirectData.status === 0 && redirectData.data && redirectData.data.redirect) {
-      const redirectUrl = `https://api-${redirectData.data.region}.libreview.io/llu/auth/login`;
-      console.log('Redirection vers:', redirectUrl);
+    if (connections.length === 0) {
+      console.log('Aucune connexion trouvée. Vérifiez les paramètres de partage de données dans votre compte LibreLinkUp.');
+      return;
+    }
 
-      const authenticatedResponse = await axios.post(redirectUrl, {
-        email: process.env.LIBRELINKUP_EMAIL,
-        password: process.env.LIBRELINKUP_PASSWORD,
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
-          'version': '4.7.0',
-          'product': 'llu.ios',
-        },
-      });
+    for (const connection of connections) {
+      console.log(`Connection ID: ${connection.id}`);
 
-      const authenticatedData = authenticatedResponse.data;
-      console.log('Authenticated Response:', authenticatedData);
-
-      if (authenticatedData.data && authenticatedData.data.authTicket && authenticatedData.data.authTicket.token) {
-        authToken = authenticatedData.data.authTicket.token;
-        console.log('Access Token:', authToken);
-
-        const patientId = authenticatedData.data.user.id;
-        console.log('Patient ID:', patientId);
-
-        const glucoseResponse = await axios.get(`https://api-${redirectData.data.region}.libreview.io/llu/connections/${patientId}/graph`, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-            'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
-            'version': '4.7.0',
-            'product': 'llu.ios',
-          },
-        });
-
-        const glucoseData = glucoseResponse.data;
-        console.log('Glucose Data:', glucoseData);
-
-        if (glucoseData.data && glucoseData.data.connection && glucoseData.data.connection.glucoseMeasurement) {
-          latestGlucoseData = glucoseData.data.connection.glucoseMeasurement;
-          console.log(`Date: ${latestGlucoseData.Timestamp}, Glucose Value: ${latestGlucoseData.Value}`);
-        } else {
-          console.log('No glucose measurement data available.');
-        }
+      if (connection.glucoseMeasurement) {
+        latestGlucoseData = connection.glucoseMeasurement;
+        console.log(`Date: ${latestGlucoseData.Timestamp}, Glucose Value: ${latestGlucoseData.Value}`);
       } else {
-        throw new Error('Réponse d\'authentification inattendue après redirection');
+        console.log('No glucose measurement data available.');
       }
-    } else {
-      throw new Error('Réponse de redirection inattendue');
     }
   } catch (error) {
     console.error('Erreur lors de la récupération des données de glycémie:', error.response ? error.response.data : error);
