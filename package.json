@@ -1,0 +1,15 @@
+{
+  "name": "glucose-monitoring",
+  "version": "1.0.0",
+  "description": "Application de surveillance de la glycémie",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^0.27.2",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.3",
+    "node-cron": "^3.0.0"
+  }
+}
