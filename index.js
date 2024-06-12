@@ -21,38 +21,15 @@ async function authenticate() {
         'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
         'version': '4.7.0',
         'product': 'llu.ios',
-      },
-      maxRedirects: 0,
+      }
     });
 
     const loginData = loginResponse.data;
     console.log('Login Response:', loginData);
 
-    if (loginData.status === 0 && loginData.data && loginData.data.redirect) {
-      const redirectUrl = `https://api-${loginData.data.region}.libreview.io/llu/auth/login`;
-      console.log('Redirection vers:', redirectUrl);
-
-      const redirectResponse = await axios.post(redirectUrl, {
-        email: process.env.LIBRELINKUP_EMAIL,
-        password: process.env.LIBRELINKUP_PASSWORD,
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
-          'version': '4.7.0',
-          'product': 'llu.ios',
-        },
-      });
-
-      const redirectData = redirectResponse.data;
-      console.log('Redirect Response:', redirectData);
-
-      if (redirectData.data && redirectData.data.authTicket && redirectData.data.authTicket.token) {
-        authToken = redirectData.data.authTicket.token;
-        console.log('Access Token:', authToken);
-      } else {
-        throw new Error('Réponse d\'authentification inattendue après redirection');
-      }
+    if (loginData.data && loginData.data.authTicket && loginData.data.authTicket.token) {
+      authToken = loginData.data.authTicket.token;
+      console.log('Access Token:', authToken);
     } else {
       throw new Error('Réponse d\'authentification inattendue');
     }
