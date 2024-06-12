@@ -1,7 +1,6 @@
 const express = require('express');
 const axios = require('axios');
 const cron = require('node-cron');
-const zlib = require('zlib');
 
 require('dotenv').config();
 
@@ -25,19 +24,9 @@ async function authenticate() {
         'product': 'llu.android',
         'version': '4.2.1',
       },
-      decompress: true,
     });
 
-    const loginData = await new Promise((resolve, reject) => {
-      zlib.gunzip(loginResponse.data, (err, decompressedData) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(JSON.parse(decompressedData.toString()));
-        }
-      });
-    });
-
+    const loginData = loginResponse.data;
     authToken = loginData.data.authTicket.token;
     console.log('Access Token:', authToken);
   } catch (error) {
@@ -63,19 +52,9 @@ async function fetchGlucoseData() {
         'product': 'llu.android',
         'version': '4.2.1',
       },
-      decompress: true,
     });
 
-    const connectionsData = await new Promise((resolve, reject) => {
-      zlib.gunzip(connectionsResponse.data, (err, decompressedData) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(JSON.parse(decompressedData.toString()));
-        }
-      });
-    });
-
+    const connectionsData = connectionsResponse.data;
     const connections = connectionsData.data;
     console.log('Connections:', connections);
 
@@ -93,19 +72,9 @@ async function fetchGlucoseData() {
           'product': 'llu.android',
           'version': '4.2.1',
         },
-        decompress: false,
       });
 
-      const glucoseData = await new Promise((resolve, reject) => {
-        zlib.gunzip(glucoseResponse.data, (err, decompressedData) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(JSON.parse(decompressedData.toString()));
-          }
-        });
-      });
-
+      const glucoseData = glucoseResponse.data;
       latestGlucoseData = glucoseData.data.connection.glucoseMeasurement;
       console.log('Latest Glucose Data:', latestGlucoseData);
     } else {
