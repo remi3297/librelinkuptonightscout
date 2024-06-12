@@ -17,14 +17,12 @@ async function authenticate() {
       password: process.env.LIBRELINKUP_PASSWORD,
     }, {
       headers: {
-        'accept-encoding': 'gzip',
-        'cache-control': 'no-cache',
-        'connection': 'Keep-Alive',
-        'content-type': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
+        'version': '4.7.0',
         'product': 'llu.ios',
-        'version': '4.7.0', // Mise à jour de la version
       },
-      maxRedirects: 0, // Empêche Axios de suivre automatiquement les redirections
+      maxRedirects: 0,
     });
 
     const loginData = loginResponse.data;
@@ -39,12 +37,10 @@ async function authenticate() {
         password: process.env.LIBRELINKUP_PASSWORD,
       }, {
         headers: {
-          'accept-encoding': 'gzip',
-          'cache-control': 'no-cache',
-          'connection': 'Keep-Alive',
-          'content-type': 'application/json',
+          'Content-Type': 'application/json',
+          'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
+          'version': '4.7.0',
           'product': 'llu.ios',
-          'version': '4.7.0', // Mise à jour de la version
         },
       });
 
@@ -72,16 +68,13 @@ async function fetchGlucoseData() {
       await authenticate();
     }
 
-    // Étape 2 : Récupération des connexions
     const connectionsResponse = await axios.get('https://api.libreview.io/llu/connections', {
       headers: {
         Authorization: `Bearer ${authToken}`,
-        'accept-encoding': 'gzip',
-        'cache-control': 'no-cache',
-        'connection': 'Keep-Alive',
-        'content-type': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'FreeStyle LibreLink Up/4.7.0 (iOS; 15.2; iPhone; en_US)',
+        'version': '4.7.0',
         'product': 'llu.ios',
-        'version': '4.7.0', // Mise à jour de la version
       },
     });
 
@@ -89,27 +82,20 @@ async function fetchGlucoseData() {
     const connections = connectionsData.data;
     console.log('Connections:', connections);
 
-    if (connections.length > 0) {
-      const patientId = connections[0].patientId;
+    if (connections.length === 0) {
+      console.log('Aucune connexion trouvée. Vérifiez les paramètres de partage de données dans votre compte LibreLinkUp.');
+      return;
+    }
 
-      // Étape 3 : Récupération des données de glycémie
-      const glucoseResponse = await axios.get(`https://api.libreview.io/llu/connections/${patientId}/graph`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          'accept-encoding': 'gzip',
-          'cache-control': 'no-cache',
-          'connection': 'Keep-Alive',
-          'content-type': 'application/json',
-          'product': 'llu.ios',
-          'version': '4.7.0', // Mise à jour de la version
-        },
-      });
+    for (const connection of connections) {
+      console.log(`Connection ID: ${connection.id}`);
 
-      const glucoseData = glucoseResponse.data;
-      latestGlucoseData = glucoseData.data.connection.glucoseMeasurement;
-      console.log('Latest Glucose Data:', latestGlucoseData);
-    } else {
-      console.log('Aucune connexion trouvée.');
+      if (connection.glucoseMeasurement) {
+        latestGlucoseData = connection.glucoseMeasurement;
+        console.log(`Date: ${latestGlucoseData.Timestamp}, Glucose Value: ${latestGlucoseData.Value}`);
+      } else {
+        console.log('No glucose measurement data available.');
+      }
     }
   } catch (error) {
     console.error('Erreur lors de la récupération des données de glycémie:', error.response ? error.response.data : error);
