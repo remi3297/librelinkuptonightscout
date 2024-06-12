@@ -24,14 +24,39 @@ async function authenticate() {
         'product': 'llu.ios',
         'version': '4.2.1',
       },
+      maxRedirects: 0, // Empêche Axios de suivre automatiquement les redirections
     });
 
     const loginData = loginResponse.data;
     console.log('Login Response:', loginData);
 
-    if (loginData.data && loginData.data.authTicket && loginData.data.authTicket.token) {
-      authToken = loginData.data.authTicket.token;
-      console.log('Access Token:', authToken);
+    if (loginData.status === 0 && loginData.data && loginData.data.redirect) {
+      const redirectUrl = `https://api-${loginData.data.region}.libreview.io/llu/auth/login`;
+      console.log('Redirection vers:', redirectUrl);
+
+      const redirectResponse = await axios.post(redirectUrl, {
+        email: process.env.LIBRELINKUP_EMAIL,
+        password: process.env.LIBRELINKUP_PASSWORD,
+      }, {
+        headers: {
+          'accept-encoding': 'gzip',
+          'cache-control': 'no-cache',
+          'connection': 'Keep-Alive',
+          'content-type': 'application/json',
+          'product': 'llu.ios',
+          'version': '4.2.1',
+        },
+      });
+
+      const redirectData = redirectResponse.data;
+      console.log('Redirect Response:', redirectData);
+
+      if (redirectData.data && redirectData.data.authTicket && redirectData.data.authTicket.token) {
+        authToken = redirectData.data.authTicket.token;
+        console.log('Access Token:', authToken);
+      } else {
+        throw new Error('Réponse d\'authentification inattendue après redirection');
+      }
     } else {
       throw new Error('Réponse d\'authentification inattendue');
     }
