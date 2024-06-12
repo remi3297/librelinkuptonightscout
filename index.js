@@ -25,7 +25,7 @@ async function authenticate() {
         'product': 'llu.android',
         'version': '4.2.1',
       },
-      decompress: false,
+      decompress: true,
     });
 
     const loginData = await new Promise((resolve, reject) => {
@@ -63,7 +63,7 @@ async function fetchGlucoseData() {
         'product': 'llu.android',
         'version': '4.2.1',
       },
-      decompress: false,
+      decompress: true,
     });
 
     const connectionsData = await new Promise((resolve, reject) => {
