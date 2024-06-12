@@ -20,15 +20,18 @@ async function authenticate() {
         'accept-encoding': 'gzip',
         'cache-control': 'no-cache',
         'connection': 'Keep-Alive',
-        'content-type': 'application/json',
-        'product': 'llu.android',
+        '        'product': 'llu.android',
         'version': '4.2.1',
       },
     });
 
-    const loginData = loginResponse.data;
-    authToken = loginData.data.authTicket.token;
-    console.log('Access Token:', authToken);
+    const loginData = loginResponse.data;    console.log('Login Response:', loginData); // Ajoutez cette ligne pour afficher la réponse de l'API
+
+    if (loginData.data && loginData.data.authTicket && loginData.data.authTicket.token) {
+      authToken = loginData.data.authTicket.token;
+      console.log('Access Token:', authTo    } else {
+      throw new Error('Réponse d\'authentification inattendue');
+    }
   } catch (error) {
     console.error('Erreur lors de l\'authentification:', error.response ? error.response.data : error);
     throw error;
