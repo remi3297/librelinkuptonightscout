@@ -95,7 +95,15 @@ app.get('/glucose', (req, res) => {
     } else if (modifiedValue >= 120 && modifiedValue <= 160) {
       modifiedValue += 20;
     }
-    res.json({ value: modifiedValue, posMin: 3 });
+    res.json({ value: modifiedValue,
+             delayMin: process.env.DELAY_MIN,
+             delayMax: process.env.DELAY_MAX,
+             spasmMin: process.env.SPASM_MIN,
+             spasmMax: process.env.SPASM_MAX,
+             amplitudeMin: process.env.AMPLITUDE_MIN,
+             glucoseMax: process.env.GLUCOSE_MAX,
+             glucoseMin: process.env.GLUCOSE_MIN,
+             });
   } else {
     res.status(404).json({ error: 'No glucose data available' });
   }
