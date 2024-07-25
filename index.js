@@ -95,7 +95,7 @@ app.get('/glucose', (req, res) => {
     } else if (modifiedValue >= 120 && modifiedValue <= 160) {
       modifiedValue += 20;
     }
-    res.json({ value: modifiedValue });
+    res.json({ value: 180 });
   } else {
     res.status(404).json({ error: 'No glucose data available' });
   }
